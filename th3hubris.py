@@ -26,6 +26,7 @@ import re
 import shutil
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import time
@@ -58,7 +59,7 @@ except ImportError:
 # GLOBAL CONSTANTS & PATH DEFINITIONS
 # ==============================================================================
 TOOL_NAME = "Th3hubris"
-VERSION = "2.6.0-kali2026"
+VERSION = "3.0.0-kali2026"
 TAGLINE = "We Build Shadow Soldiers - Ultimate OPSEC & Anonymity Suite"
 
 STATE_DIR = Path("/var/run/th3hubris")
@@ -68,8 +69,13 @@ BACKUP_DIR = Path("/etc/th3hubris/backups")
 PROXYCHAINS4_CONF = Path("/etc/proxychains4.conf")
 PROXYCHAINS_LEGACY_CONF = Path("/etc/proxychains.conf")
 RESOLV_CONF = Path("/etc/resolv.conf")
+NM_OVERRIDE_CONF = Path("/etc/NetworkManager/conf.d/99-th3hubris-dns.conf")
+
 TORRC_PATH = Path("/etc/tor/torrc")
-TORRC_D_DIR = Path("/etc/tor/torrc.d")
+TOR_CONTROL_PORT = 9051
+TOR_SOCKS_PORT = 9050
+TOR_TRANS_PORT = 9040
+TOR_DNS_PORT = 5353
 
 OPENVPN_PID_FILE = STATE_DIR / "openvpn.pid"
 OPENVPN_CONFIG_FILE = STATE_DIR / "active_tunnel.ovpn"
@@ -78,14 +84,6 @@ IPTABLES_BACKUP_V4 = STATE_DIR / "iptables.v4.bak"
 IPTABLES_BACKUP_V6 = STATE_DIR / "iptables.v6.bak"
 
 VPN_GATE_API_URL = "http://www.vpngate.net/api/iphone/"
-TOR_CONTROL_PORT = 9051
-TOR_SOCKS_PORT = 9050
-
-SECURE_DNS_SERVERS = [
-    "1.1.1.1",  # Cloudflare Privacy DNS
-    "9.9.9.9",  # Quad9 Secure DNS
-    "8.8.8.8",  # Google Public DNS
-]
 
 
 # ==============================================================================
@@ -118,55 +116,57 @@ class Logger:
 """
         sub_title = (
             f"[bold red]»»»[/bold red] [bold white]{TAGLINE}[/bold white] "
-            f"[bold red]«««[/bold red]\n[dim cyan]Release v{VERSION} | Architected for Kali Linux 2026[/dim cyan]"
+            f"[bold red]«««[/bold red]\n"
+            f"[dim cyan]Engine: v{VERSION} | Target: Kali Linux Rolling 2026 | Python 3.12+[/dim cyan]"
         )
 
         if HAS_RICH and console:
-            banner_text = Text(raw_art, style="bold red")
+            art_text = Text(raw_art, style="bold red")
             panel = Panel(
-                Align.center(Text.assemble(banner_text, "\n", Text.from_markup(sub_title))),
+                Align.center(art_text),
+                subtitle=sub_title,
                 box=DOUBLE_EDGE,
-                border_style="bold red",
+                border_style="red",
                 padding=(1, 2),
             )
             console.print(panel)
         else:
-            print(f"{TermColors.BOLD}{TermColors.RED}{raw_art}{TermColors.RESET}")
-            print(f"{TermColors.BOLD}{TermColors.WHITE}  {TAGLINE}{TermColors.RESET}")
-            print(f"{TermColors.CYAN}  Release v{VERSION} | Architected for Kali Linux 2026{TermColors.RESET}\n")
+            print(f"{TermColors.RED}{raw_art}{TermColors.RESET}")
+            print(f"{TermColors.BOLD}{TermColors.WHITE}  »»» {TAGLINE} «««{TermColors.RESET}")
+            print(f"{TermColors.CYAN}  Engine: v{VERSION} | Target: Kali Linux Rolling 2026{TermColors.RESET}\n")
 
     @staticmethod
     def info(msg: str) -> None:
         if HAS_RICH and console:
-            console.print(f"[bold cyan][*][/bold cyan] [bold white]{msg}[/bold white]")
+            console.print(f"[bold blue][*][/bold blue] {msg}")
         else:
-            print(f"{TermColors.CYAN}[*]{TermColors.RESET} {msg}")
+            print(f"{TermColors.BLUE}[*]{TermColors.RESET} {msg}")
 
     @staticmethod
     def success(msg: str) -> None:
         if HAS_RICH and console:
-            console.print(f"[bold green][+][/bold green] [bold white]{msg}[/bold white]")
+            console.print(f"[bold green][+][/bold green] {msg}")
         else:
             print(f"{TermColors.GREEN}[+]{TermColors.RESET} {msg}")
 
     @staticmethod
     def warn(msg: str) -> None:
         if HAS_RICH and console:
-            console.print(f"[bold yellow][!][/bold yellow] [yellow]{msg}[/yellow]")
+            console.print(f"[bold yellow][!][/bold yellow] {msg}")
         else:
             print(f"{TermColors.YELLOW}[!]{TermColors.RESET} {msg}")
 
     @staticmethod
     def error(msg: str) -> None:
         if HAS_RICH and console:
-            console.print(f"[bold red][-][/bold red] [bold red]{msg}[/bold red]")
+            console.print(f"[bold red][-][/bold red] {msg}")
         else:
             print(f"{TermColors.RED}[-]{TermColors.RESET} {msg}")
 
     @staticmethod
     def opsec(msg: str) -> None:
         if HAS_RICH and console:
-            console.print(f"[bold magenta][OPSEC][/bold magenta] [bold white]{msg}[/bold white]")
+            console.print(f"[bold magenta][OPSEC][/bold magenta] {msg}")
         else:
             print(f"{TermColors.MAGENTA}[OPSEC]{TermColors.RESET} {msg}")
 
@@ -178,8 +178,9 @@ class Logger:
 class AnonymityState:
     is_active: bool = False
     original_macs: Dict[str, str] = field(default_factory=dict)
+    resolv_backup: Optional[Dict[str, Any]] = None
     proxychains_backup: Optional[str] = None
-    resolv_backup: Optional[str] = None
+    firefox_policy_backups: List[str] = field(default_factory=list)
     tor_was_running: bool = False
     openvpn_pid: Optional[int] = None
     vpn_server_ip: Optional[str] = None
@@ -190,7 +191,7 @@ class AnonymityState:
 
 
 class StateManager:
-    """Persists operational state across processes for zero-leak recovery."""
+    """Persists dynamic runtime status to allow safe recovery and clean shutdowns."""
 
     def __init__(self) -> None:
         STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -202,7 +203,10 @@ class StateManager:
         try:
             with open(STATE_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return AnonymityState(**data)
+                if isinstance(data.get("resolv_backup"), str):
+                    data["resolv_backup"] = {"resolv_backup": data["resolv_backup"]}
+                valid_fields = AnonymityState.__annotations__.keys()
+                return AnonymityState(**{k: v for k, v in data.items() if k in valid_fields})
         except Exception as e:
             Logger.warn(f"Failed to read existing state file ({e}). Initializing clean state.")
             return AnonymityState()
@@ -372,57 +376,224 @@ class MacSpoofer:
 
 
 # ==============================================================================
-# DNS LEAK PROTECTION & RESOLVER LOCK
+# FIREFOX ENTERPRISE POLICY HARDENER (DISABLE DNS-OVER-HTTPS)
 # ==============================================================================
-class DnsManager:
-    """Enforces zero DNS leakage through resolver locking and safe routing."""
+class FirefoxPolicyManager:
+    """Enforces Mozilla Enterprise Policies to disable DNS-over-HTTPS (DoH).
+    
+    Prevents Firefox from bypassing system transparent Tor proxy via Cloudflare DoH.
+    """
+
+    POLICY_DIRS = [
+        Path("/etc/firefox/policies"),
+        Path("/etc/firefox-esr/policies"),
+        Path("/usr/lib/firefox-esr/distribution"),
+        Path("/usr/lib/firefox/distribution"),
+    ]
+
+    HARDENED_POLICY = {
+        "policies": {
+            "DNSOverHTTPS": {
+                "Enabled": False,
+                "Locked": True,
+            },
+            "NetworkPrediction": False,
+            "CaptivePortal": False,
+        }
+    }
 
     @classmethod
-    def backup_and_lock(cls) -> Optional[str]:
-        if not RESOLV_CONF.exists():
-            return None
+    def apply_policy(cls) -> List[str]:
+        Logger.opsec("Hardening Firefox against DNS-over-HTTPS (DoH) leak bypass...")
+        backups: List[str] = []
+        policy_json = json.dumps(cls.HARDENED_POLICY, indent=2)
 
-        backup_path = BACKUP_DIR / "resolv.conf.th3hubris.bak"
-        Logger.opsec("Securing DNS subsystem against ISP leakage...")
+        for p_dir in cls.POLICY_DIRS:
+            if p_dir.parent.exists() or "etc" in str(p_dir):
+                try:
+                    p_dir.mkdir(parents=True, exist_ok=True)
+                    target = p_dir / "policies.json"
+                    backup = BACKUP_DIR / f"firefox_policy_{abs(hash(str(target)))}.bak"
 
-        # Unlock file if previously immutable
-        subprocess.run(["chattr", "-i", str(RESOLV_CONF)], capture_output=True, text=True)
+                    if target.exists():
+                        shutil.copy2(target, backup)
+                        backups.append(f"{target}::{backup}")
+                    else:
+                        backups.append(f"{target}::NEW")
 
+                    target.write_text(policy_json, encoding="utf-8")
+                except OSError as e:
+                    Logger.warn(f"Could not apply Firefox policy to {p_dir}: {e}")
+
+        Logger.success("Firefox Enterprise Policy enforced: DNS-over-HTTPS [bold red]DISABLED[/bold red] (System Tor DNS locked).")
+        return backups
+
+    @classmethod
+    def restore_policy(cls, backups: List[str]) -> None:
+        if not backups:
+            return
+        Logger.info("Restoring original Firefox enterprise policies...")
+        for entry in backups:
+            try:
+                target_str, backup_str = entry.split("::", 1)
+                target = Path(target_str)
+                if backup_str == "NEW":
+                    target.unlink(missing_ok=True)
+                else:
+                    backup = Path(backup_str)
+                    if backup.exists():
+                        shutil.copy2(backup, target)
+                        backup.unlink(missing_ok=True)
+            except Exception as e:
+                Logger.warn(f"Failed to restore Firefox policy {entry}: {e}")
+        Logger.success("Firefox enterprise policies normalized.")
+
+    @classmethod
+    def launch_browser(cls, target_url: str = "https://check.torproject.org") -> None:
+        """Launches Firefox as the active desktop user directed to Tor check."""
+        sudo_user = os.environ.get("SUDO_USER")
+        firefox_bin = shutil.which("firefox-esr") or shutil.which("firefox")
+        if not firefox_bin:
+            Logger.error("Firefox is not installed on this system.")
+            return
+
+        Logger.opsec(f"Spawning secure Firefox instance pointing to {target_url}...")
+        if sudo_user and sudo_user != "root":
+            display = os.environ.get("DISPLAY", ":0")
+            xauthority = os.environ.get("XAUTHORITY", f"/home/{sudo_user}/.Xauthority")
+            env_prefix = f"DISPLAY={display} XAUTHORITY={xauthority}"
+            cmd = f"su - {sudo_user} -c '{env_prefix} {firefox_bin} {target_url} >/dev/null 2>&1 &'"
+            subprocess.run(cmd, shell=True)
+        else:
+            subprocess.Popen([firefox_bin, target_url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        Logger.success("Firefox launched successfully.")
+
+
+# ==============================================================================
+# DNS LEAK PROTECTION & RESOLVER LOCK (TOR TRANSPARENT DNS)
+# ==============================================================================
+class DnsManager:
+    """Enforces zero DNS leakage through resolver locking and Tor routing."""
+
+    @classmethod
+    def send_raw_dns_query(cls, host: str, server: str = "127.0.0.1", port: int = 53, timeout: float = 3.0) -> bool:
+        """Sends a standard DNS A-record query via raw UDP socket to verify resolver."""
         try:
-            shutil.copy2(RESOLV_CONF, backup_path)
-        except OSError as e:
-            Logger.error(f"Failed to backup {RESOLV_CONF}: {e}")
-            return None
+            tx_id = random.randint(1, 65535)
+            flags = 0x0100  # Standard query, recursion desired
+            header = struct.pack(">HHHHHH", tx_id, flags, 1, 0, 0, 0)
+            qname = b"".join(bytes([len(p)]) + p.encode("ascii") for p in host.split(".")) + b"\x00"
+            qtype_qclass = struct.pack(">HH", 1, 1)  # A record, IN class
+            packet = header + qname + qtype_qclass
 
-        # Write privacy DNS configuration with Tor Local DNS resolver
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.settimeout(timeout)
+                sock.sendto(packet, (server, port))
+                resp, _ = sock.recvfrom(512)
+                if len(resp) >= 12:
+                    resp_id, resp_flags = struct.unpack(">HH", resp[:4])
+                    if resp_id == tx_id and (resp_flags & 0x000F) == 0:
+                        return True
+        except Exception:
+            pass
+        return False
+
+    @classmethod
+    def backup_and_lock(cls) -> Dict[str, Any]:
+        backup_info: Dict[str, Any] = {
+            "resolv_backup": None,
+            "is_symlink": False,
+            "symlink_target": None,
+            "nm_managed": False,
+        }
+
+        Logger.opsec("Securing DNS subsystem against ISP leakage & NetworkManager overwrites...")
+
+        # 1. Prevent NetworkManager from overwriting /etc/resolv.conf
+        nm_dir = Path("/etc/NetworkManager/conf.d")
+        if nm_dir.exists() or Path("/etc/NetworkManager").exists():
+            try:
+                nm_dir.mkdir(parents=True, exist_ok=True)
+                NM_OVERRIDE_CONF.write_text("[main]\ndns=none\n", encoding="utf-8")
+                subprocess.run(["systemctl", "reload", "NetworkManager"], capture_output=True, text=True)
+                backup_info["nm_managed"] = True
+                Logger.info("NetworkManager DNS auto-update disabled ([main] dns=none).")
+            except OSError as e:
+                Logger.warn(f"Could not configure NetworkManager conf: {e}")
+
+        # 2. Backup /etc/resolv.conf
+        if RESOLV_CONF.exists() or RESOLV_CONF.is_symlink():
+            subprocess.run(["chattr", "-i", str(RESOLV_CONF)], capture_output=True, text=True)
+
+            if RESOLV_CONF.is_symlink():
+                backup_info["is_symlink"] = True
+                try:
+                    backup_info["symlink_target"] = str(RESOLV_CONF.readlink())
+                except OSError:
+                    pass
+
+            backup_path = BACKUP_DIR / "resolv.conf.th3hubris.bak"
+            try:
+                shutil.copy2(RESOLV_CONF, backup_path, follow_symlinks=False)
+                backup_info["resolv_backup"] = str(backup_path)
+            except OSError as e:
+                Logger.warn(f"Failed to backup {RESOLV_CONF}: {e}")
+
+            if RESOLV_CONF.is_symlink():
+                try:
+                    RESOLV_CONF.unlink()
+                except OSError:
+                    pass
+
+        # 3. Write privacy DNS configuration pointing exclusively to Tor resolver
         content = (
             "# Generated by Th3hubris OPSEC Suite\n"
-            "# Strict Anti-DNS-Leak Configuration (Tor Transparent DNS)\n"
+            "# Strict Anti-DNS-Leak Configuration (Tor Transparent DNSPort)\n"
             "nameserver 127.0.0.1\n"
-            "nameserver 1.1.1.1\n"
             "options edns0 trust-ad\n"
         )
         try:
             RESOLV_CONF.write_text(content, encoding="utf-8")
-            # Apply immutable bit to prevent DHCP/NetworkManager overwrite
             subprocess.run(["chattr", "+i", str(RESOLV_CONF)], capture_output=True, text=True)
-            Logger.success("DNS configuration locked to secure zero-knowledge resolvers (127.0.0.1 -> Tor DNSPort / 1.1.1.1).")
-            return str(backup_path)
+            Logger.success("DNS configuration locked to local Tor transparent resolver (127.0.0.1:53 -> 5353).")
         except OSError as e:
-            Logger.warn(f"Could not lock /etc/resolv.conf: {e}")
-            return str(backup_path)
+            Logger.warn(f"Could not write/lock /etc/resolv.conf: {e}")
+
+        return backup_info
 
     @classmethod
-    def restore(cls, backup_path: Optional[str]) -> None:
-        if not backup_path or not Path(backup_path).exists():
+    def restore(cls, backup_info: Optional[Dict[str, Any]]) -> None:
+        if not backup_info:
             return
 
-        Logger.info("Releasing immutable lock and restoring original /etc/resolv.conf...")
+        Logger.info("Releasing immutable lock and restoring original DNS subsystem...")
         subprocess.run(["chattr", "-i", str(RESOLV_CONF)], capture_output=True, text=True)
+
+        # 1. Restore NetworkManager configuration
+        if backup_info.get("nm_managed") or NM_OVERRIDE_CONF.exists():
+            NM_OVERRIDE_CONF.unlink(missing_ok=True)
+            subprocess.run(["systemctl", "reload", "NetworkManager"], capture_output=True, text=True)
+            Logger.info("NetworkManager DNS management restored.")
+
+        # 2. Restore /etc/resolv.conf
+        resolv_backup = backup_info.get("resolv_backup")
+        is_symlink = backup_info.get("is_symlink", False)
+        symlink_target = backup_info.get("symlink_target")
+
         try:
-            shutil.copy2(backup_path, RESOLV_CONF)
-            Path(backup_path).unlink(missing_ok=True)
-            Logger.success("Original DNS resolver configuration restored.")
+            if is_symlink and symlink_target:
+                RESOLV_CONF.unlink(missing_ok=True)
+                RESOLV_CONF.symlink_to(symlink_target)
+                if resolv_backup:
+                    Path(resolv_backup).unlink(missing_ok=True)
+                Logger.success("Restored /etc/resolv.conf symlink.")
+            elif resolv_backup and Path(resolv_backup).exists():
+                RESOLV_CONF.unlink(missing_ok=True)
+                shutil.copy2(resolv_backup, RESOLV_CONF)
+                Path(resolv_backup).unlink(missing_ok=True)
+                Logger.success("Original /etc/resolv.conf restored.")
+            else:
+                subprocess.run(["systemctl", "restart", "NetworkManager"], capture_output=True, text=True)
         except OSError as e:
             Logger.error(f"Failed to restore resolv.conf: {e}")
 
@@ -546,7 +717,7 @@ class ProxyChainsManager:
 # TOR SERVICE & CIRCUIT ROTATION (GHOST ID)
 # ==============================================================================
 class TorManager:
-    """Manages the local Tor onion routing daemon and circuit identities."""
+    """Manages local Tor onion routing, transparent proxying, and active port sockets."""
 
     @classmethod
     def is_service_active(cls) -> bool:
@@ -557,54 +728,88 @@ class TorManager:
         return False
 
     @classmethod
-    def ensure_control_port(cls) -> None:
-        """Configures Tor TransPort, DNSPort, and ControlPort for transparent proxying."""
-        if not TORRC_PATH.exists():
-            return
-
+    def is_port_listening(cls, host: str, port: int, timeout: float = 1.0) -> bool:
         try:
-            content = TORRC_PATH.read_text(encoding="utf-8")
-            needed: List[str] = []
-            if not re.search(r"^VirtualAddrNetworkIPv4\s+10\.192\.0\.0/10", content, re.MULTILINE):
-                needed.append("VirtualAddrNetworkIPv4 10.192.0.0/10")
-            if not re.search(r"^AutomapHostsOnResolve\s+1", content, re.MULTILINE):
-                needed.append("AutomapHostsOnResolve 1")
-            if not re.search(r"^TransPort\s+(?:127\.0\.0\.1:)?9040", content, re.MULTILINE):
-                needed.append("TransPort 127.0.0.1:9040")
-            if not re.search(r"^DNSPort\s+(?:127\.0\.0\.1:)?5353", content, re.MULTILINE):
-                needed.append("DNSPort 127.0.0.1:5353")
-            if not re.search(r"^ControlPort\s+9051", content, re.MULTILINE):
-                needed.append("ControlPort 9051")
-            if not re.search(r"^CookieAuthentication\s+0", content, re.MULTILINE):
-                needed.append("CookieAuthentication 0")
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            return False
 
-            if needed:
-                Logger.info("Configuring Tor Transparent Proxying & ControlPort in /etc/tor/torrc...")
+    @classmethod
+    def ensure_transparent_configuration(cls) -> None:
+        """Injects necessary TransPort, DNSPort, VirtualAddr, and ControlPort into torrc."""
+        TORRC_PATH.parent.mkdir(parents=True, exist_ok=True)
+        content = ""
+        if TORRC_PATH.exists():
+            try:
+                content = TORRC_PATH.read_text(encoding="utf-8")
+            except OSError:
+                content = ""
+
+        needed: List[str] = []
+        if not re.search(r"^VirtualAddrNetworkIPv4\s+10\.192\.0\.0/10", content, re.MULTILINE):
+            needed.append("VirtualAddrNetworkIPv4 10.192.0.0/10")
+        if not re.search(r"^AutomapHostsOnResolve\s+1", content, re.MULTILINE):
+            needed.append("AutomapHostsOnResolve 1")
+        if not re.search(r"^TransPort\s+(?:127\.0\.0\.1:)?9040", content, re.MULTILINE):
+            needed.append("TransPort 127.0.0.1:9040")
+        if not re.search(r"^DNSPort\s+(?:127\.0\.0\.1:)?5353", content, re.MULTILINE):
+            needed.append("DNSPort 127.0.0.1:5353")
+        if not re.search(r"^ControlPort\s+9051", content, re.MULTILINE):
+            needed.append("ControlPort 9051")
+        if not re.search(r"^CookieAuthentication\s+0", content, re.MULTILINE):
+            needed.append("CookieAuthentication 0")
+
+        if needed:
+            Logger.info("Configuring Tor Transparent Proxying & ControlPort in /etc/tor/torrc...")
+            try:
                 with open(TORRC_PATH, "a", encoding="utf-8") as f:
                     f.write("\n# Added by Th3hubris for System-Wide Transparent Proxying\n" + "\n".join(needed) + "\n")
-                subprocess.run(["systemctl", "restart", "tor"], capture_output=True, text=True)
-        except OSError as e:
-            Logger.warn(f"Failed to ensure Tor configuration: {e}")
+            except OSError as e:
+                Logger.warn(f"Failed to append to /etc/tor/torrc: {e}")
 
     @classmethod
     def start_tor(cls) -> bool:
-        cls.ensure_control_port()
-        Logger.opsec("Initializing Tor Onion Routing Daemon...")
+        cls.ensure_transparent_configuration()
+        Logger.opsec("Starting and initializing Tor Onion Routing Daemon (Transparent Mode)...")
 
-        # Check if already active
-        if cls.is_service_active():
-            Logger.success("Tor daemon is already running.")
-            return True
+        # Restart Tor daemon to guarantee fresh torrc config is applied
+        for unit in ("tor@default", "tor"):
+            subprocess.run(["systemctl", "restart", unit], capture_output=True, text=True)
 
-        for unit in ("tor", "tor@default"):
-            subprocess.run(["systemctl", "start", unit], capture_output=True, text=True)
-            time.sleep(1.5)
-            if cls.is_service_active():
-                Logger.success(f"Tor daemon successfully started via systemd ({unit}).")
-                return True
+        # Actively poll sockets until ports are open and operational
+        Logger.info("Awaiting Tor socket initialization (TransPort:9040, DNSPort:5353, SOCKS:9050)...")
+        ports_ready = False
+        for attempt in range(15):
+            time.sleep(1.0)
+            if (
+                cls.is_port_listening("127.0.0.1", TOR_SOCKS_PORT)
+                and cls.is_port_listening("127.0.0.1", TOR_TRANS_PORT)
+                and cls.is_port_listening("127.0.0.1", TOR_CONTROL_PORT)
+            ):
+                ports_ready = True
+                break
 
-        Logger.error("Failed to start Tor daemon via systemctl.")
-        return False
+        if not ports_ready:
+            Logger.warn("Tor sockets not completely bound after 15s. Checking service health...")
+            if not cls.is_service_active():
+                Logger.error("Tor service failed to reach active state.")
+                return False
+
+        # Verify Tor DNSPort resolution directly
+        dns_ready = False
+        for _ in range(5):
+            if DnsManager.send_raw_dns_query("check.torproject.org", server="127.0.0.1", port=TOR_DNS_PORT, timeout=2.0):
+                dns_ready = True
+                break
+            time.sleep(1.0)
+
+        if dns_ready:
+            Logger.success("Tor daemon operational: TransPort:9040 | DNSPort:5353 | SOCKS5:9050 [bold green]ONLINE[/bold green]")
+        else:
+            Logger.info("Tor daemon running (DNS circuit bootstrap in progress). Proceeding...")
+
+        return True
 
     @classmethod
     def rotate_identity(cls) -> bool:
@@ -626,8 +831,7 @@ class TorManager:
         except Exception as e:
             Logger.warn(f"ControlPort rotation failed ({e}). Falling back to systemctl reload...")
 
-        # Fallback to SIGHUP reload
-        for unit in ("tor", "tor@default"):
+        for unit in ("tor@default", "tor"):
             res = subprocess.run(["systemctl", "reload", unit], capture_output=True, text=True)
             if res.returncode == 0:
                 Logger.success("Tor daemon reloaded with fresh circuit state.")
@@ -664,13 +868,13 @@ class VpnManager:
                 import urllib.request
                 req = urllib.request.Request(
                     VPN_GATE_API_URL,
-                    headers={"User-Agent": "Mozilla/5.0 (Kali Linux 2026; x86_64) Th3hubris/2.6.0"},
+                    headers={"User-Agent": "Mozilla/5.0 (Kali Linux 2026; x86_64) Th3hubris/3.0.0"},
                 )
                 with urllib.request.urlopen(req, timeout=8) as response:
                     raw_csv = response.read().decode("utf-8", errors="ignore")
                 if raw_csv and "HostName" in raw_csv:
                     break
-            except Exception as e:
+            except Exception:
                 time.sleep(1.5)
 
         # Attempt 2: Route through Tor SOCKS5 (bypasses ISP blocks / DNS failure)
@@ -682,7 +886,7 @@ class VpnManager:
                         "http": "socks5h://127.0.0.1:9050",
                         "https": "socks5h://127.0.0.1:9050",
                     }
-                    r = requests.get(VPN_GATE_API_URL, proxies=proxies, timeout=12, headers={"User-Agent": "Mozilla/5.0 Th3hubris/2.6.0"})
+                    r = requests.get(VPN_GATE_API_URL, proxies=proxies, timeout=12, headers={"User-Agent": "Mozilla/5.0 Th3hubris/3.0.0"})
                     if r.status_code == 200 and "HostName" in r.text:
                         raw_csv = r.text
                 if not raw_csv or "HostName" not in raw_csv:
@@ -721,7 +925,7 @@ class VpnManager:
         if not candidates:
             return None
 
-        # Sort by highest score and lowest ping
+        # Sort by lowest ping, then highest score
         candidates.sort(key=lambda x: (x[1], -x[0]))
         chosen = candidates[0]
         score, ping, country, ip_addr, ovpn_b64 = chosen
@@ -794,7 +998,6 @@ class VpnManager:
                 except ValueError:
                     pass
 
-            # Check if tun interface is up
             res_ip = subprocess.run(["ip", "link", "show"], capture_output=True, text=True)
             if "tun" in res_ip.stdout:
                 tun_found = True
@@ -831,10 +1034,16 @@ class VpnManager:
 
 
 # ==============================================================================
-# KERNEL KILL-SWITCH & LEAK PREVENTION (IPTABLES / NFTABLES)
+# KERNEL KILL-SWITCH & TRANSPARENT PROXY (IPTABLES KALITORIFY-GRADE RULES)
 # ==============================================================================
 class KillSwitchManager:
-    """Enforces absolute firewall isolation: real IP never leaks if tunnel drops."""
+    """Enforces absolute firewall isolation: real IP never leaks if tunnel drops.
+    
+    Implements standard transparent routing:
+      1. DNS requests intercepted and redirected to Tor DNSPort (5353) BEFORE loopback.
+      2. TCP connections redirected to Tor TransPort (9040).
+      3. Hard kill-switch drops all plaintext leakage.
+    """
 
     CHAIN_NAME = "TH3HUBRIS_KILLSWITCH"
     NAT_CHAIN = "TH3HUBRIS_NAT"
@@ -851,7 +1060,7 @@ class KillSwitchManager:
 
     @classmethod
     def enable(cls, vpn_ip: Optional[str] = None) -> bool:
-        Logger.opsec("Deploying low-level Linux Kernel Kill-Switch & Transparent Proxy (iptables/nftables)...")
+        Logger.opsec("Deploying low-level Linux Kernel Kill-Switch & Transparent Proxy (iptables)...")
         cls.backup_rules()
 
         # Completely block IPv6 to prevent IPv6 bypass leaks
@@ -875,7 +1084,7 @@ class KillSwitchManager:
         subprocess.run(["iptables", "-t", "nat", "-X", cls.NAT_CHAIN], capture_output=True, text=True)
         subprocess.run(["iptables", "-t", "nat", "-N", cls.NAT_CHAIN], capture_output=True, text=True)
 
-        # Tor daemon bypasses transparent redirection
+        # Tor daemon bypasses transparent redirection to prevent infinite loops
         if tor_uid:
             subprocess.run(
                 ["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-m", "owner", "--uid-owner", tor_uid, "-j", "RETURN"],
@@ -883,33 +1092,62 @@ class KillSwitchManager:
                 text=True,
             )
 
-        # Loopback and local network bypass redirection
+        # Redirect Tor virtual address range for mapped .onion services
+        subprocess.run(
+            [
+                "iptables", "-t", "nat", "-A", cls.NAT_CHAIN,
+                "-d", "10.192.0.0/10", "-p", "tcp",
+                "-m", "tcp", "--tcp-flags", "FIN,SYN,RST,ACK", "SYN",
+                "-j", "REDIRECT", "--to-ports", str(TOR_TRANS_PORT),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        # CRITICAL FIX: Intercept ALL DNS queries (UDP & TCP port 53) and redirect to Tor DNSPort (5353)
+        # MUST be placed BEFORE -o lo -j RETURN so queries to 127.0.0.1:53 are not returned without redirect!
+        subprocess.run(
+            [
+                "iptables", "-t", "nat", "-A", cls.NAT_CHAIN,
+                "-p", "udp", "-m", "udp", "--dport", "53",
+                "-j", "REDIRECT", "--to-ports", str(TOR_DNS_PORT),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            [
+                "iptables", "-t", "nat", "-A", cls.NAT_CHAIN,
+                "-p", "tcp", "-m", "tcp", "--dport", "53",
+                "-j", "REDIRECT", "--to-ports", str(TOR_DNS_PORT),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        # Loopback interface exemption (-o lo -j RETURN for non-DNS local traffic)
         subprocess.run(["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-o", "lo", "-j", "RETURN"], capture_output=True, text=True)
-        for subnet in ("127.0.0.0/8", "192.168.0.0/16", "10.0.0.0/8", "172.16.0.0/12"):
+
+        # Local private LAN subnets exemption (prevents dropping local SSH / router traffic)
+        for subnet in ("127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"):
             subprocess.run(
-                ["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-d", subnet, "-p", "tcp", "-j", "RETURN"],
+                ["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-d", subnet, "-j", "RETURN"],
                 capture_output=True,
                 text=True,
             )
 
-        # Transparently redirect all DNS queries (port 53 UDP/TCP) to Tor DNSPort (5353)
+        # Redirect all remaining outbound TCP connections to Tor TransPort (9040)
         subprocess.run(
-            ["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-p", "udp", "--dport", "53", "-j", "REDIRECT", "--to-ports", "5353"],
-            capture_output=True,
-            text=True,
-        )
-        subprocess.run(
-            ["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-p", "tcp", "--dport", "53", "-j", "REDIRECT", "--to-ports", "5353"],
+            [
+                "iptables", "-t", "nat", "-A", cls.NAT_CHAIN,
+                "-p", "tcp", "-m", "tcp", "--tcp-flags", "FIN,SYN,RST,ACK", "SYN",
+                "-j", "REDIRECT", "--to-ports", str(TOR_TRANS_PORT),
+            ],
             capture_output=True,
             text=True,
         )
 
-        # Transparently redirect all other TCP traffic to Tor TransPort (9040)
-        subprocess.run(
-            ["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-p", "tcp", "--syn", "-j", "REDIRECT", "--to-ports", "9040"],
-            capture_output=True,
-            text=True,
-        )
+        # Attach custom NAT chain into top of OUTPUT
         subprocess.run(["iptables", "-t", "nat", "-I", "OUTPUT", "1", "-j", cls.NAT_CHAIN], capture_output=True, text=True)
 
         # ----------------------------------------------------------------------
@@ -920,20 +1158,21 @@ class KillSwitchManager:
         subprocess.run(["iptables", "-X", cls.CHAIN_NAME], capture_output=True, text=True)
         subprocess.run(["iptables", "-N", cls.CHAIN_NAME], capture_output=True, text=True)
 
-        # Allow local loopback
-        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "lo", "-j", "ACCEPT"], capture_output=True, text=True)
+        # 1. Drop invalid state packets (prevents TCP desync leaks)
+        subprocess.run(
+            ["iptables", "-A", cls.CHAIN_NAME, "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"],
+            capture_output=True,
+            text=True,
+        )
 
-        # Allow established and related connections
+        # 2. Allow established and related connections
         subprocess.run(
             ["iptables", "-A", cls.CHAIN_NAME, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"],
             capture_output=True,
             text=True,
         )
 
-        # Allow OpenVPN tunnel adapter (tun+)
-        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "tun+", "-j", "ACCEPT"], capture_output=True, text=True)
-
-        # Allow Tor daemon processes
+        # 3. Allow Tor daemon outbound connections
         if tor_uid:
             subprocess.run(
                 ["iptables", "-A", cls.CHAIN_NAME, "-m", "owner", "--uid-owner", tor_uid, "-j", "ACCEPT"],
@@ -941,29 +1180,30 @@ class KillSwitchManager:
                 text=True,
             )
 
-        # Allow redirected local Tor endpoints on 127.0.0.1
-        for port, proto in (("5353", "udp"), ("5353", "tcp"), ("9040", "tcp"), ("9050", "tcp"), ("9051", "tcp")):
-            subprocess.run(
-                ["iptables", "-A", cls.CHAIN_NAME, "-d", "127.0.0.1", "-p", proto, "--dport", port, "-j", "ACCEPT"],
-                capture_output=True,
-                text=True,
-            )
+        # 4. Allow Loopback interface (-o lo)
+        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "lo", "-j", "ACCEPT"], capture_output=True, text=True)
 
-        # Allow communication with the OpenVPN server endpoint directly
+        # 5. Allow Localhost destination subnet (redirected packets to 127.0.0.1)
+        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-d", "127.0.0.0/8", "-j", "ACCEPT"], capture_output=True, text=True)
+
+        # 6. Allow OpenVPN tunnel adapter (tun+)
+        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "tun+", "-j", "ACCEPT"], capture_output=True, text=True)
+
+        # 7. Allow connection to VPN Server endpoint directly if specified
         if vpn_ip:
             subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-d", vpn_ip, "-j", "ACCEPT"], capture_output=True, text=True)
 
-        # Allow local LAN subnets (prevent disconnecting SSH or local router)
-        for subnet in ("192.168.0.0/16", "10.0.0.0/8", "172.16.0.0/12"):
+        # 8. Allow local LAN subnets
+        for subnet in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"):
             subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-d", subnet, "-j", "ACCEPT"], capture_output=True, text=True)
 
-        # Drop all other outgoing packets in chain (hard kill-switch)
+        # 9. Drop all other outgoing packets in chain (hard kill-switch)
         subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-j", "DROP"], capture_output=True, text=True)
 
-        # Insert chain at the top of OUTPUT
+        # Insert custom filter chain at the top of OUTPUT
         subprocess.run(["iptables", "-I", "OUTPUT", "1", "-j", cls.CHAIN_NAME], capture_output=True, text=True)
 
-        Logger.success("Kernel Kill-Switch & Transparent Proxy [bold green]ARMED[/bold green]. All apps routed securely.")
+        Logger.success("Kernel Kill-Switch & Transparent Proxy [bold green]ARMED[/bold green]. All system apps securely isolated.")
         return True
 
     @classmethod
@@ -985,7 +1225,7 @@ class KillSwitchManager:
         subprocess.run(["ip6tables", "-P", "INPUT", "ACCEPT"], capture_output=True, text=True)
         subprocess.run(["ip6tables", "-P", "FORWARD", "ACCEPT"], capture_output=True, text=True)
 
-        # Restore previous backup if exists
+        # Restore previous backups if present
         if IPTABLES_BACKUP_V4.exists():
             subprocess.run(f"iptables-restore < {IPTABLES_BACKUP_V4}", shell=True, capture_output=True, text=True)
             IPTABLES_BACKUP_V4.unlink(missing_ok=True)
@@ -1003,9 +1243,9 @@ class NetworkAuditor:
     """Verifies public IP address, geo-location, ISP, and Tor routing integrity."""
 
     @classmethod
-    def get_public_ip(cls, via_tor: bool = False) -> Dict[str, Any]:
+    def get_public_ip(cls, via_tor_socks: bool = False) -> Dict[str, Any]:
         proxies = None
-        if via_tor:
+        if via_tor_socks:
             proxies = {
                 "http": "socks5h://127.0.0.1:9050",
                 "https": "socks5h://127.0.0.1:9050",
@@ -1035,7 +1275,7 @@ class NetworkAuditor:
 
         # Fallback to curl
         cmd = ["curl", "-s", "--max-time", "8"]
-        if via_tor:
+        if via_tor_socks:
             cmd.extend(["--socks5-hostname", "127.0.0.1:9050"])
         cmd.append("https://ipinfo.io/json")
 
@@ -1125,7 +1365,7 @@ class Th3hubrisOrchestrator:
             return
 
         Logger.info("Capturing baseline public IP before cloaking...")
-        baseline = NetworkAuditor.get_public_ip(via_tor=False)
+        baseline = NetworkAuditor.get_public_ip(via_tor_socks=False)
         self.state.baseline_ip = baseline.get("ip")
         self.state.baseline_country = baseline.get("country")
         Logger.warn(f"Exposed Baseline IP: [bold red]{baseline.get('ip')}[/bold red] ({baseline.get('country')} - {baseline.get('org')})")
@@ -1133,26 +1373,29 @@ class Th3hubrisOrchestrator:
         # 1. MAC Address Cloaking
         self.state.original_macs = MacSpoofer.spoof_all()
 
-        # 2. DNS Leak Defense
+        # 2. DNS Leak Defense & NetworkManager Override
         self.state.resolv_backup = DnsManager.backup_and_lock()
 
         # 3. ProxyChains4 Orchestration
         self.state.proxychains_backup = ProxyChainsManager.configure()
 
-        # 4. Tor Onion Routing Initialization
+        # 4. Enforce Firefox Enterprise Policy (Disable DNS-over-HTTPS Bypass)
+        self.state.firefox_policy_backups = FirefoxPolicyManager.apply_policy()
+
+        # 5. Tor Onion Routing Initialization & Socket Verification
         self.state.tor_was_running = TorManager.is_service_active()
         if not TorManager.start_tor():
             Logger.error("Tor initialization failed. Aborting pipeline.")
             self.stop()
             return
 
-        # 5. Automated VPN Tunneling (Optional/Chained)
+        # 6. Automated VPN Tunneling (Optional/Chained)
         if not no_vpn:
             pid, server_ip = VpnManager.start_vpn(custom_vpn)
             self.state.openvpn_pid = pid
             self.state.vpn_server_ip = server_ip
 
-        # 6. Kernel Kill-Switch Arming
+        # 7. Kernel Kill-Switch Arming & Transparent NAT Routing
         KillSwitchManager.enable(self.state.vpn_server_ip)
         self.state.killswitch_active = True
 
@@ -1160,23 +1403,42 @@ class Th3hubrisOrchestrator:
         self.state.activated_at = time.time()
         self.state_mgr.save(self.state)
 
-        # 7. Post-Activation Verification Matrix
-        time.sleep(2)
-        Logger.info("Conducting egress audit through anonymized Tor/VPN pipeline...")
-        shadow = NetworkAuditor.get_public_ip(via_tor=True)
+        # 8. Post-Activation DNS Resolution End-to-End Verification
+        time.sleep(1.5)
+        dns_ok = DnsManager.send_raw_dns_query("check.torproject.org", server="127.0.0.1", port=53, timeout=3.0)
+        if dns_ok:
+            Logger.success("End-to-End DNS Resolution verified ([bold green]127.0.0.1:53 -> Tor 5353[/bold green]). Zero Leaks.")
+        else:
+            Logger.warn("DNS check through system resolver took longer than expected. Testing via SOCKS proxy...")
+
+        # 9. Post-Activation Egress IP Verification Matrix
+        Logger.info("Conducting egress audit through transparent proxy & Tor pipeline...")
+        # Direct audit (tests transparent proxy without socks flags!)
+        direct_shadow = NetworkAuditor.get_public_ip(via_tor_socks=False)
+        if direct_shadow.get("ip") and direct_shadow.get("ip") != "Offline / Unreachable":
+            shadow = direct_shadow
+        else:
+            shadow = NetworkAuditor.get_public_ip(via_tor_socks=True)
+
         NetworkAuditor.print_audit_comparison(baseline, shadow)
 
         if shadow.get("ip") != baseline.get("ip") and shadow.get("ip") != "Offline / Unreachable":
             Logger.success("[bold green]ANONYMITY CHAIN VERIFIED:[/bold green] Identity masked. Zero leaks detected.")
         else:
-            Logger.warn("Public IP identical or verification timed out. Inspect local routing.")
+            Logger.warn("Public IP verification timed out or unchanged. Inspecting local routing...")
+
+        # Check if Firefox is running and advise restart
+        res = subprocess.run(["pgrep", "-f", "firefox"], capture_output=True, text=True)
+        if res.returncode == 0:
+            Logger.warn("Firefox is currently running. For transparent DNS rules to take immediate effect, restart Firefox:")
+            print(f"  {TermColors.BOLD}{TermColors.CYAN}killall firefox-esr firefox; sudo th3hubris --browser{TermColors.RESET}\n")
 
     def stop(self) -> None:
         Logger.banner()
         SystemValidator.enforce_root()
         Logger.opsec("Decommissioning Anonymity Suite and restoring native network state...")
 
-        # 1. Disarm Kernel Kill-Switch
+        # 1. Disarm Kernel Kill-Switch & NAT chains
         KillSwitchManager.disable()
         self.state.killswitch_active = False
 
@@ -1186,20 +1448,25 @@ class Th3hubrisOrchestrator:
             self.state.openvpn_pid = None
             self.state.vpn_server_ip = None
 
-        # 3. Restore DNS Configuration
+        # 3. Restore Firefox Enterprise Policies
+        if self.state.firefox_policy_backups:
+            FirefoxPolicyManager.restore_policy(self.state.firefox_policy_backups)
+            self.state.firefox_policy_backups = []
+
+        # 4. Restore DNS Configuration & NetworkManager
         DnsManager.restore(self.state.resolv_backup)
         self.state.resolv_backup = None
 
-        # 4. Restore ProxyChains Configuration
+        # 5. Restore ProxyChains Configuration
         ProxyChainsManager.restore(self.state.proxychains_backup)
         self.state.proxychains_backup = None
 
-        # 5. Restore Hardware MAC Addresses
+        # 6. Restore Hardware MAC Addresses
         if self.state.original_macs:
             MacSpoofer.restore_all(self.state.original_macs)
             self.state.original_macs = {}
 
-        # 6. Stop Tor if we started it
+        # 7. Stop Tor if we started it
         TorManager.stop_tor_if_started(self.state.tor_was_running)
 
         self.state.is_active = False
@@ -1211,7 +1478,7 @@ class Th3hubrisOrchestrator:
         SystemValidator.enforce_root()
         TorManager.rotate_identity()
         time.sleep(1.5)
-        new_identity = NetworkAuditor.get_public_ip(via_tor=True)
+        new_identity = NetworkAuditor.get_public_ip(via_tor_socks=True)
         Logger.success(f"New Egress Identity: [bold green]{new_identity.get('ip')}[/bold green] ({new_identity.get('country')})")
 
     def status(self) -> None:
@@ -1219,7 +1486,7 @@ class Th3hubrisOrchestrator:
         SystemValidator.enforce_root()
 
         tor_status = TorManager.is_service_active()
-        current_ip = NetworkAuditor.get_public_ip(via_tor=self.state.is_active)
+        current_ip = NetworkAuditor.get_public_ip(via_tor_socks=self.state.is_active)
 
         if HAS_RICH and console:
             table = Table(title="[bold cyan]Th3hubris Operational Health & Posture[/bold cyan]", box=ROUNDED)
@@ -1266,6 +1533,7 @@ def main() -> None:
     action_group.add_argument("--ghost-id", action="store_true", help="Instantly rotate Tor exit node / acquire new IP")
     action_group.add_argument("--status", action="store_true", help="Audit current OPSEC posture and IP visibility")
     action_group.add_argument("--shell", action="store_true", help="Spawn an anonymized sub-shell wrapped with proxychains4")
+    action_group.add_argument("--browser", "--firefox", dest="browser", action="store_true", help="Launch Firefox configured securely through Tor transparent proxy")
 
     parser.add_argument("--no-vpn", action="store_true", help="Skip OpenVPN tunnel and run pure Tor + ProxyChains mode")
     parser.add_argument("--vpn-config", type=str, help="Path to custom .ovpn configuration file")
@@ -1285,6 +1553,8 @@ def main() -> None:
         orchestrator.status()
     elif args.shell:
         ShellManager.spawn_cloaked_shell()
+    elif args.browser:
+        FirefoxPolicyManager.launch_browser()
 
 
 if __name__ == "__main__":

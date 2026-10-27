@@ -42,7 +42,7 @@ cat << 'EOF'
 
 EOF
 echo -e "${WHITE}  »»» We Build Shadow Soldiers - Ultimate OPSEC Suite «««${NC}"
-echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment${NC}\n"
+echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.0.0)${NC}\n"
 
 # 1. Enforce Root Privileges
 if [[ "$EUID" -ne 0 ]]; then
@@ -67,6 +67,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     iproute2 \
     net-tools \
     curl \
+    dnsutils \
     e2fsprogs \
     python3 \
     python3-pip \
@@ -90,14 +91,26 @@ mkdir -p "$STATE_DIR"
 chmod 700 "$CONFIG_DIR"
 chmod 755 "$STATE_DIR"
 
-# 4. Configure Tor defaults
-echo -e "${BLUE}[*] Step 5: Pre-configuring Tor ControlPort in /etc/tor/torrc...${NC}"
-if [[ -f /etc/tor/torrc ]]; then
-    if ! grep -q "ControlPort 9051" /etc/tor/torrc; then
-        echo -e "\n# Added by Th3hubris\nControlPort 9051\nCookieAuthentication 0\n" >> /etc/tor/torrc
-    fi
+# 4. Pre-configure Tor defaults
+echo -e "${BLUE}[*] Step 5: Pre-configuring Tor Transparent Proxying & ControlPort in /etc/tor/torrc...${NC}"
+mkdir -p /etc/tor
+touch /etc/tor/torrc
+
+if ! grep -q "VirtualAddrNetworkIPv4" /etc/tor/torrc; then
+    cat << 'TORRC_EOF' >> /etc/tor/torrc
+
+# Added by Th3hubris for System-Wide Transparent Proxying
+VirtualAddrNetworkIPv4 10.192.0.0/10
+AutomapHostsOnResolve 1
+TransPort 127.0.0.1:9040
+DNSPort 127.0.0.1:5353
+ControlPort 9051
+CookieAuthentication 0
+TORRC_EOF
 fi
+
 systemctl enable tor 2>/dev/null || true
+systemctl restart tor 2>/dev/null || true
 
 # 5. Deploy system-wide installation & binary wrappers
 echo -e "${BLUE}[*] Step 6: Deploying Th3hubris to /opt and system binary paths...${NC}"
@@ -125,6 +138,7 @@ echo -e "${GREEN}[✔] Kali Linux 2026 networking stack verified.${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "\n${CYAN}Quick Start Commands:${NC}"
 echo -e "  ${YELLOW}sudo th3hubris --start${NC}     -> Activate full anonymity chain"
+echo -e "  ${YELLOW}sudo th3hubris --browser${NC}   -> Launch secure Firefox via Tor"
 echo -e "  ${YELLOW}sudo th3hubris --status${NC}    -> Check OPSEC & IP posture"
 echo -e "  ${YELLOW}sudo th3hubris --ghost-id${NC}  -> Rotate Tor exit circuit / IP"
 echo -e "  ${YELLOW}sudo th3hubris --shell${NC}     -> Spawn anonymized terminal sub-shell"
