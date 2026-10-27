@@ -85,15 +85,19 @@ Th3hubris combines multiple defense layers into a unified, non-conflicting routi
 1. **Massive Aggressive ASCII Banner:**
    - Displays a custom, glowing terminal banner with real-time OPSEC status and version indicators upon execution.
 2. **Tor Transparent Proxying (System-Wide TransPort 9040):**
-   - Automatically reconfigures `torrc` with `TransPort 127.0.0.1:9040`, `DNSPort 127.0.0.1:5353`, `VirtualAddrNetworkIPv4 10.192.0.0/10`, and `AutomapHostsOnResolve 1`.
+   - Automatically reconfigures `torrc` with `TransPort 127.0.0.1:9040`, `DNSPort 127.0.0.1:9053`, `VirtualAddrNetworkIPv4 10.192.0.0/10`, and `AutomapHostsOnResolve 1`.
    - Transparently intercepts all outbound TCP connections from any system application (browsers, scripts, CLI tools) and routes them through the Tor network without requiring manual proxy settings.
-3. **Zero-Leak Tor DNS Resolution (DNSPort 5353):**
-   - Redirects all port 53 DNS queries to Tor's anonymous remote resolver.
+3. **Zero-Leak Tor DNS Resolution (DNSPort 9053):**
+   - Redirects all port 53 DNS queries to Tor's anonymous remote resolver on port `9053` (isolated from system mDNS / kdeconnectd).
    - Prevents NetworkManager and DHCP from overriding `/etc/resolv.conf` by deploying a `dns=none` drop-in and setting the kernel immutable bit (`chattr +i`).
 4. **Mozilla Enterprise Policy Hardening (Firefox DoH Killer):**
    - Automatically writes system-wide `/etc/firefox/policies/policies.json` disabling Firefox's **DNS-over-HTTPS (DoH)** feature.
    - Resolves the infamous *"Server Not Found"* error in Firefox by ensuring browser DNS lookups route through the Tor transparent resolver rather than attempting to reach Cloudflare over HTTPS.
-5. **Instant Tor Identity Rotation (`--ghost-id`):**
+5. **Dynamic Multi-Route VPN Failover Engine (15s Health Probe):**
+   - Automatically harvests top-rated candidate OpenVPN relays across multiple mirrors.
+   - Tests each candidate with a strict 15-second connectivity audit. If a node fails or times out, seamlessly fails over to the next best candidate.
+6. **Tor Multipath Circuit Optimization & Instant Rotation (`--ghost-id`):**
+   - Enforces optimal circuit build timeouts (`CircuitBuildTimeout 10`, `NumEntryGuards 3`) and verifies active internet throughput before locking the circuit.
    - Rotates circuits and generates brand-new exit node identities instantly on demand via the Tor ControlPort (`SIGNAL NEWNYM`).
 6. **Automated ProxyChains4 Reconfiguration:**
    - Automatically parses and backs up `/etc/proxychains4.conf`.

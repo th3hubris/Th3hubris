@@ -42,7 +42,7 @@ cat << 'EOF'
 
 EOF
 echo -e "${WHITE}  »»» We Build Shadow Soldiers - Ultimate OPSEC Suite «««${NC}"
-echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.1.0)${NC}\n"
+echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.2.0)${NC}\n"
 
 # 1. Enforce Root Privileges
 if [[ "$EUID" -ne 0 ]]; then
@@ -97,7 +97,7 @@ mkdir -p /etc/tor
 touch /etc/tor/torrc
 
 # Remove any previous duplicates of managed keys in /etc/tor/torrc
-sed -i -E '/^(SocksPort|TransPort|DNSPort|VirtualAddrNetworkIPv4|AutomapHostsOnResolve|ControlPort|CookieAuthentication)/Id' /etc/tor/torrc || true
+sed -i -E '/^(SocksPort|TransPort|DNSPort|VirtualAddrNetworkIPv4|AutomapHostsOnResolve|ControlPort|CookieAuthentication|CircuitBuildTimeout|LearnCircuitBuildTimeout|NumEntryGuards|ClientOnly)/Id' /etc/tor/torrc || true
 
 cat << 'TORRC_EOF' >> /etc/tor/torrc
 
@@ -109,6 +109,10 @@ VirtualAddrNetworkIPv4 10.192.0.0/10
 AutomapHostsOnResolve 1
 ControlPort 127.0.0.1:9051
 CookieAuthentication 0
+CircuitBuildTimeout 10
+LearnCircuitBuildTimeout 1
+NumEntryGuards 3
+ClientOnly 1
 TORRC_EOF
 
 # Reset systemd failure limit lock and enable tor@default instance

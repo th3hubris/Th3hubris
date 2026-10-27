@@ -59,7 +59,7 @@ except ImportError:
 # GLOBAL CONSTANTS & PATH DEFINITIONS
 # ==============================================================================
 TOOL_NAME = "Th3hubris"
-VERSION = "3.1.0-kali2026"
+VERSION = "3.2.0-kali2026"
 TAGLINE = "We Build Shadow Soldiers - Ultimate OPSEC & Anonymity Suite"
 
 STATE_DIR = Path("/var/run/th3hubris")
@@ -80,10 +80,15 @@ TOR_DNS_PORT = 9053  # Dedicated port avoiding mDNS / kdeconnectd collision on 5
 OPENVPN_PID_FILE = STATE_DIR / "openvpn.pid"
 OPENVPN_CONFIG_FILE = STATE_DIR / "active_tunnel.ovpn"
 OPENVPN_AUTH_FILE = STATE_DIR / "vpn_credentials.txt"
+OPENVPN_LOG_FILE = STATE_DIR / "openvpn.log"
 IPTABLES_BACKUP_V4 = STATE_DIR / "iptables.v4.bak"
 IPTABLES_BACKUP_V6 = STATE_DIR / "iptables.v6.bak"
 
-VPN_GATE_API_URL = "http://www.vpngate.net/api/iphone/"
+VPN_GATE_API_URLS = [
+    "http://www.vpngate.net/api/iphone/",
+    "http://219.100.37.243:39265/api/iphone/",
+    "http://219.100.37.244:39265/api/iphone/",
+]
 
 
 # ==============================================================================
@@ -714,10 +719,10 @@ class ProxyChainsManager:
 
 
 # ==============================================================================
-# TOR SERVICE & CIRCUIT ROTATION (GHOST ID)
+# TOR SERVICE & CIRCUIT OPTIMIZATION (FASTEST / STRONGEST PATH)
 # ==============================================================================
 class TorManager:
-    """Manages local Tor onion routing, transparent proxying, and active port sockets."""
+    """Manages local Tor onion routing, transparent proxying, and circuit health."""
 
     @classmethod
     def is_service_active(cls) -> bool:
@@ -756,6 +761,10 @@ class TorManager:
             "controlport",
             "cookieauthentication",
             "socksport",
+            "circuitbuildtimeout",
+            "learncircuitbuildtimeout",
+            "numentryguards",
+            "clientonly",
         }
 
         sanitized_lines: List[str] = []
@@ -769,10 +778,10 @@ class TorManager:
                 continue
             sanitized_lines.append(line)
 
-        # Append clean, deduplicated configuration block
+        # Append clean, deduplicated configuration block with performance optimizations
         managed_block = [
             "",
-            "# Added by Th3hubris for System-Wide Transparent Proxying & Control",
+            "# Added by Th3hubris for System-Wide Transparent Proxying & Optimized Routing",
             "SocksPort 127.0.0.1:9050",
             f"TransPort 127.0.0.1:{TOR_TRANS_PORT}",
             f"DNSPort 127.0.0.1:{TOR_DNS_PORT}",
@@ -780,6 +789,10 @@ class TorManager:
             "AutomapHostsOnResolve 1",
             f"ControlPort 127.0.0.1:{TOR_CONTROL_PORT}",
             "CookieAuthentication 0",
+            "CircuitBuildTimeout 10",
+            "LearnCircuitBuildTimeout 1",
+            "NumEntryGuards 3",
+            "ClientOnly 1",
             "",
         ]
         sanitized_lines.extend(managed_block)
@@ -795,7 +808,7 @@ class TorManager:
         cls.ensure_transparent_configuration()
         Logger.opsec("Starting and initializing Tor Onion Routing Daemon (Transparent Mode)...")
 
-        # 1. Reset systemd failed counter to clear 'start-limit-hit'
+        # 1. Reset systemd failed counter to clear any 'start-limit-hit' locks
         subprocess.run(["systemctl", "reset-failed", "tor@default", "tor"], capture_output=True, text=True)
 
         # 2. Terminate any orphaned Tor processes holding ports
@@ -807,7 +820,7 @@ class TorManager:
         if res_restart.returncode != 0:
             Logger.warn(f"systemctl restart tor@default returned {res_restart.returncode}: {res_restart.stderr.strip()}")
 
-        # 4. Actively poll sockets until ports are open and operational
+        # 4. Actively poll sockets up to 15 seconds
         Logger.info(f"Awaiting Tor socket initialization (TransPort:{TOR_TRANS_PORT}, DNSPort:{TOR_DNS_PORT}, SOCKS:{TOR_SOCKS_PORT})...")
         ports_ready = False
         for attempt in range(15):
@@ -839,6 +852,28 @@ class TorManager:
             Logger.success(f"Tor daemon operational: TransPort:{TOR_TRANS_PORT} | DNSPort:{TOR_DNS_PORT} | SOCKS5:{TOR_SOCKS_PORT} [bold green]ONLINE[/bold green]")
         else:
             Logger.info("Tor daemon running (DNS circuit bootstrap in progress). Proceeding...")
+
+        # 6. Active 15-second Circuit Internet Verification (Ensures Tor path is verified LIVE)
+        Logger.info("Auditing Tor circuit responsiveness & active Internet route (15s probe)...")
+        tor_egress_ok = False
+        for _ in range(15):
+            time.sleep(1.0)
+            check = NetworkAuditor.get_public_ip(via_tor_socks=True)
+            if check.get("ip") and check.get("ip") != "Offline / Unreachable":
+                tor_egress_ok = True
+                Logger.success(f"Active Tor Multipath Circuit locked: Egress [bold green]{check.get('ip')}[/bold green] ({check.get('country')})")
+                break
+
+        if not tor_egress_ok:
+            Logger.warn("Initial Tor circuit latency detected. Requesting fresh high-speed circuit (SIGNAL NEWNYM)...")
+            cls.rotate_identity()
+            time.sleep(2.0)
+            for _ in range(5):
+                time.sleep(1.0)
+                check = NetworkAuditor.get_public_ip(via_tor_socks=True)
+                if check.get("ip") and check.get("ip") != "Offline / Unreachable":
+                    Logger.success(f"Fresh Tor Circuit locked: Egress [bold green]{check.get('ip')}[/bold green] ({check.get('country')})")
+                    break
 
         return True
 
@@ -883,60 +918,53 @@ class TorManager:
 
 
 # ==============================================================================
-# AUTOMATED FREE OPENVPN ORCHESTRATION (VPN GATE ENGINE)
+# AUTOMATED MULTI-CANDIDATE VPN FAILOVER ENGINE (BEST-NODE SELECTION)
 # ==============================================================================
 class VpnManager:
-    """Dynamically acquires, configures, and establishes high-speed OpenVPN tunnels."""
+    """Harvests, tests, and establishes high-speed OpenVPN tunnels with automated failover."""
 
     @classmethod
-    def fetch_dynamic_config(cls) -> Optional[str]:
-        Logger.opsec("Querying academic VPN Gate API for active OpenVPN relay nodes...")
+    def fetch_candidates(cls) -> List[Tuple[int, int, str, str, str]]:
+        """Harvests and ranks active VPN candidate relays: (score, ping, country, ip, b64_ovpn)."""
+        Logger.opsec("Harvesting active OpenVPN relay nodes across academic multi-mirrors...")
         raw_csv: Optional[str] = None
 
-        # Attempt 1: Direct fetch with short retry
-        for attempt in range(1, 3):
+        # 1. Direct fetch across mirror endpoints
+        for url in VPN_GATE_API_URLS:
             try:
                 import urllib.request
                 req = urllib.request.Request(
-                    VPN_GATE_API_URL,
-                    headers={"User-Agent": "Mozilla/5.0 (Kali Linux 2026; x86_64) Th3hubris/3.1.0"},
+                    url,
+                    headers={"User-Agent": "Mozilla/5.0 (Kali Linux 2026; x86_64) Th3hubris/3.2.0"},
                 )
-                with urllib.request.urlopen(req, timeout=8) as response:
+                with urllib.request.urlopen(req, timeout=6) as response:
                     raw_csv = response.read().decode("utf-8", errors="ignore")
                 if raw_csv and "HostName" in raw_csv:
                     break
             except Exception:
-                time.sleep(1.5)
+                continue
 
-        # Attempt 2: Route through Tor SOCKS5 (bypasses ISP blocks / DNS failure)
+        # 2. Tor SOCKS5-routed fetch fallback (bypasses ISP censorship / DNS locks)
         if not raw_csv or "HostName" not in raw_csv:
-            Logger.info("Direct VPN retrieval unavailable. Querying VPN Gate API through Tor circuit...")
-            try:
-                if requests:
-                    proxies = {
-                        "http": "socks5h://127.0.0.1:9050",
-                        "https": "socks5h://127.0.0.1:9050",
-                    }
-                    r = requests.get(VPN_GATE_API_URL, proxies=proxies, timeout=12, headers={"User-Agent": "Mozilla/5.0 Th3hubris/3.1.0"})
-                    if r.status_code == 200 and "HostName" in r.text:
-                        raw_csv = r.text
-                if not raw_csv or "HostName" not in raw_csv:
-                    cmd = ["curl", "-s", "--socks5-hostname", "127.0.0.1:9050", "--max-time", "12", VPN_GATE_API_URL]
+            Logger.info("Direct mirrors unreachable. Querying VPN relay directory via Tor circuit...")
+            for url in VPN_GATE_API_URLS:
+                try:
+                    cmd = ["curl", "-s", "--socks5-hostname", "127.0.0.1:9050", "--max-time", "8", url]
                     res = subprocess.run(cmd, capture_output=True, text=True)
                     if res.returncode == 0 and "HostName" in res.stdout:
                         raw_csv = res.stdout
-            except Exception as e:
-                Logger.warn(f"Tor-routed VPN retrieval failed: {e}")
+                        break
+                except Exception:
+                    continue
 
         if not raw_csv or "HostName" not in raw_csv:
-            Logger.warn("Could not retrieve dynamic OpenVPN list. Operating in Tor Transparent Proxy mode.")
-            return None
+            Logger.warn("Could not query dynamic VPN relays. Multi-candidate pool unavailable.")
+            return []
 
         lines = [line.strip() for line in raw_csv.splitlines() if line.strip()]
         data_rows = [line for line in lines if not line.startswith("*") and not line.startswith("#")]
-
         if not data_rows:
-            return None
+            return []
 
         reader = csv.reader(data_rows)
         candidates: List[Tuple[int, int, str, str, str]] = []
@@ -944,106 +972,141 @@ class VpnManager:
         for row in reader:
             if len(row) > 14 and row[14]:
                 try:
-                    score = int(row[2])
+                    score = int(row[2]) if row[2].isdigit() else 0
                     ping = int(row[3]) if row[3].isdigit() else 999
                     country = row[5]
                     ip_addr = row[1]
                     ovpn_b64 = row[14]
-                    candidates.append((score, ping, country, ip_addr, ovpn_b64))
+                    if ping > 0:
+                        candidates.append((score, ping, country, ip_addr, ovpn_b64))
                 except (ValueError, IndexError):
                     continue
 
-        if not candidates:
-            return None
-
-        # Sort by lowest ping, then highest score
+        # Sort by lowest latency (ping), then highest quality score
         candidates.sort(key=lambda x: (x[1], -x[0]))
-        chosen = candidates[0]
-        score, ping, country, ip_addr, ovpn_b64 = chosen
 
-        Logger.success(f"Selected optimized relay node: [bold green]{country}[/bold green] ({ip_addr}) | Ping: {ping}ms")
-        decoded_ovpn = base64.b64decode(ovpn_b64).decode("utf-8", errors="ignore")
-        return decoded_ovpn
+        # Deduplicate by IP to ensure distinct geographical routes
+        unique_candidates: List[Tuple[int, int, str, str, str]] = []
+        seen_ips = set()
+        for c in candidates:
+            if c[3] not in seen_ips:
+                seen_ips.add(c[3])
+                unique_candidates.append(c)
+
+        return unique_candidates
 
     @classmethod
-    def start_vpn(cls, custom_config_path: Optional[str] = None) -> Tuple[Optional[int], Optional[str]]:
-        ovpn_content: Optional[str] = None
+    def _test_and_launch_vpn(cls, ovpn_content: str, country: str, target_ip: str, timeout: int = 15) -> Tuple[Optional[int], Optional[str]]:
+        """Attempts to spawn an OpenVPN node and verifies tunnel interface within timeout (15s)."""
+        cls.stop_vpn()
 
-        if custom_config_path:
-            p = Path(custom_config_path)
-            if p.exists():
-                Logger.info(f"Loading custom OpenVPN profile: {p}")
-                ovpn_content = p.read_text(encoding="utf-8")
-            else:
-                Logger.error(f"Specified OpenVPN file does not exist: {p}")
-                return None, None
-        else:
-            ovpn_content = cls.fetch_dynamic_config()
-
-        if not ovpn_content:
-            Logger.warn("Could not obtain an automated VPN profile. Operating in Tor-Only mode.")
-            return None, None
-
-        # Write credentials (VPN Gate standard is 'vpn'/'vpn')
         OPENVPN_AUTH_FILE.write_text("vpn\nvpn\n", encoding="utf-8")
         os.chmod(OPENVPN_AUTH_FILE, 0o600)
+        OPENVPN_LOG_FILE.unlink(missing_ok=True)
 
-        # Inject necessary hardening options
         injected = [
-            "\n# Generated by Th3hubris",
-            "auth-user-pass " + str(OPENVPN_AUTH_FILE),
+            "\n# Generated by Th3hubris Automated Engine",
+            f"auth-user-pass {OPENVPN_AUTH_FILE}",
             "script-security 2",
-            "route-nopull",  # Keep routing predictable; Tor will bind properly
+            "route-nopull",
+            "connect-retry-max 1",
+            "hand-window 10",
             "verb 1",
         ]
-        ovpn_content += "\n" + "\n".join(injected) + "\n"
-        OPENVPN_CONFIG_FILE.write_text(ovpn_content, encoding="utf-8")
+        full_config = ovpn_content + "\n" + "\n".join(injected) + "\n"
+        OPENVPN_CONFIG_FILE.write_text(full_config, encoding="utf-8")
 
-        # Extract remote server IP
-        remote_match = re.search(r"^\s*remote\s+([0-9\.]+)\b", ovpn_content, re.MULTILINE)
-        server_ip = remote_match.group(1) if remote_match else None
+        remote_match = re.search(r"^\s*remote\s+([0-9\.]+)\b", full_config, re.MULTILINE)
+        server_ip = remote_match.group(1) if remote_match else target_ip
 
-        Logger.opsec("Launching OpenVPN background daemon...")
         cmd = [
             "openvpn",
-            "--config",
-            str(OPENVPN_CONFIG_FILE),
-            "--writepid",
-            str(OPENVPN_PID_FILE),
-            "--daemon",
-            "th3hubris_ovpn",
+            "--config", str(OPENVPN_CONFIG_FILE),
+            "--writepid", str(OPENVPN_PID_FILE),
+            "--log", str(OPENVPN_LOG_FILE),
+            "--daemon", "th3hubris_ovpn",
         ]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
-            Logger.error(f"Failed to spawn OpenVPN daemon: {res.stderr}")
             return None, None
 
-        # Wait for tun adapter
-        tun_found = False
         pid: Optional[int] = None
-        for _ in range(12):
-            time.sleep(1)
-            if OPENVPN_PID_FILE.exists():
+        tun_active = False
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            time.sleep(1.0)
+            if OPENVPN_PID_FILE.exists() and not pid:
                 try:
                     pid = int(OPENVPN_PID_FILE.read_text(encoding="utf-8").strip())
                 except ValueError:
                     pass
 
-            res_ip = subprocess.run(["ip", "link", "show"], capture_output=True, text=True)
-            if "tun" in res_ip.stdout:
-                tun_found = True
+            # Inspect OpenVPN daemon logs for sequence completion or early failures
+            if OPENVPN_LOG_FILE.exists():
+                try:
+                    log_content = OPENVPN_LOG_FILE.read_text(encoding="utf-8", errors="ignore")
+                    if "Initialization Sequence Completed" in log_content:
+                        tun_active = True
+                        break
+                    if "AUTH_FAILED" in log_content or "Cannot resolve host" in log_content:
+                        break
+                except Exception:
+                    pass
+
+            # Fallback: check if tun adapter has an assigned IPv4 address
+            check_ip = subprocess.run(["ip", "-o", "-4", "addr", "show"], capture_output=True, text=True)
+            if "tun" in check_ip.stdout:
+                tun_active = True
                 break
 
-        if tun_found:
-            Logger.success(f"OpenVPN tunnel established successfully (PID: {pid}). Interface [bold]tun0[/bold] active.")
-            return pid, server_ip
-        else:
-            Logger.warn("OpenVPN started but tunnel interface initialization timed out. Proceeding...")
-            return pid, server_ip
+        if not tun_active:
+            return None, None
+
+        time.sleep(1.0)
+        return pid, server_ip
+
+    @classmethod
+    def start_vpn(cls, custom_config_path: Optional[str] = None, max_candidates: int = 5) -> Tuple[Optional[int], Optional[str]]:
+        """Orchestrates multi-candidate failover, giving each candidate up to 15s to establish."""
+        if custom_config_path:
+            p = Path(custom_config_path)
+            if p.exists():
+                Logger.info(f"Loading custom user OpenVPN profile: {p}")
+                return cls._test_and_launch_vpn(p.read_text(encoding="utf-8"), "Custom VPN", "127.0.0.1", timeout=15)
+            else:
+                Logger.error(f"Specified OpenVPN file does not exist: {p}")
+                return None, None
+
+        candidates = cls.fetch_candidates()
+        if not candidates:
+            Logger.warn("No active VPN candidates discovered. Proceeding in hardened Tor-Only mode.")
+            return None, None
+
+        top_pool = candidates[:max_candidates]
+        Logger.info(f"Initialized dynamic multi-route pool: [bold cyan]{len(top_pool)} optimal candidate routes[/bold cyan] selected.")
+
+        for idx, (score, ping, country, ip_addr, ovpn_b64) in enumerate(top_pool, 1):
+            Logger.opsec(f"Probing Route #{idx}/{len(top_pool)}: [bold]{country}[/bold] ({ip_addr}) | Ping: {ping}ms (15s health verification)...")
+            try:
+                decoded_ovpn = base64.b64decode(ovpn_b64).decode("utf-8", errors="ignore")
+            except Exception:
+                continue
+
+            pid, server_ip = cls._test_and_launch_vpn(decoded_ovpn, country, ip_addr, timeout=15)
+            if pid and server_ip:
+                Logger.success(f"[bold green]OPTIMAL VPN ROUTE LOCKED:[/bold green] #{idx} ({country} - {ip_addr}) verified active & passing encrypted traffic.")
+                return pid, server_ip
+            else:
+                Logger.warn(f"Route #{idx} ({country} - {ip_addr}) failed to establish within 15s. Engaging automated failover...")
+                cls.stop_vpn()
+                time.sleep(1.0)
+
+        Logger.warn(f"All {len(top_pool)} VPN candidate routes timed out. Operating in hardened Tor Transparent mode.")
+        return None, None
 
     @classmethod
     def stop_vpn(cls, pid: Optional[int] = None) -> None:
-        Logger.info("Terminating OpenVPN tunnel daemon...")
         if pid:
             try:
                 os.kill(pid, signal.SIGTERM)
@@ -1058,10 +1121,10 @@ class VpnManager:
                 pass
             OPENVPN_PID_FILE.unlink(missing_ok=True)
 
-        subprocess.run(["pkill", "-f", "th3hubris_ovpn"], capture_output=True, text=True)
+        subprocess.run(["pkill", "-9", "-f", "th3hubris_ovpn"], capture_output=True, text=True)
         OPENVPN_CONFIG_FILE.unlink(missing_ok=True)
         OPENVPN_AUTH_FILE.unlink(missing_ok=True)
-        Logger.success("OpenVPN daemon stopped and runtime artifacts scrubbed.")
+        OPENVPN_LOG_FILE.unlink(missing_ok=True)
 
 
 # ==============================================================================
@@ -1135,8 +1198,8 @@ class KillSwitchManager:
             text=True,
         )
 
-        # CRITICAL FIX: Intercept ALL DNS queries (UDP & TCP port 53) and redirect to Tor DNSPort (9053)
-        # MUST be placed BEFORE -o lo -j RETURN so queries to 127.0.0.1:53 are not returned without redirect!
+        # Intercept ALL DNS queries (UDP & TCP port 53) and redirect to Tor DNSPort (9053)
+        # Placed BEFORE -o lo -j RETURN so queries to 127.0.0.1:53 are redirected to Tor 9053
         subprocess.run(
             [
                 "iptables", "-t", "nat", "-A", cls.NAT_CHAIN,
@@ -1413,16 +1476,16 @@ class Th3hubrisOrchestrator:
         # 4. Enforce Firefox Enterprise Policy (Disable DNS-over-HTTPS Bypass)
         self.state.firefox_policy_backups = FirefoxPolicyManager.apply_policy()
 
-        # 5. Tor Onion Routing Initialization & Socket Verification
+        # 5. Tor Onion Routing Initialization & 15s Route Verification
         self.state.tor_was_running = TorManager.is_service_active()
         if not TorManager.start_tor():
             Logger.error("Tor initialization failed. Aborting pipeline to prevent unencrypted leaks.")
             self.stop()
             return
 
-        # 6. Automated VPN Tunneling (Optional/Chained)
+        # 6. Automated Multi-Candidate VPN Failover Engine (15s per candidate)
         if not no_vpn:
-            pid, server_ip = VpnManager.start_vpn(custom_vpn)
+            pid, server_ip = VpnManager.start_vpn(custom_vpn, max_candidates=5)
             self.state.openvpn_pid = pid
             self.state.vpn_server_ip = server_ip
 
