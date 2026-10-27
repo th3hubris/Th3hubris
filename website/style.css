@@ -200,13 +200,18 @@ html, body {
 
 .touch-btn-wrap {
   margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
 .btn-touch {
   border: 1px solid var(--term-pink);
   color: var(--term-pink);
   background: transparent;
-  padding: 6px 18px;
+  padding: 6px 14px;
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 600;
@@ -221,6 +226,39 @@ html, body {
   background: rgba(225, 29, 72, 0.12);
   border-color: var(--term-pink-hover);
   color: var(--term-pink-hover);
+}
+
+.btn-touch-alt {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-touch-alt:hover {
+  background: rgba(78, 168, 222, 0.12);
+  border-color: var(--term-cyan);
+  color: var(--term-cyan);
+}
+
+.play-icon {
+  vertical-align: -1.5px;
+  margin-right: 4px;
+  color: var(--term-dollar);
+}
+
+.about-narrative-block {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.about-paragraph {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.75;
+  text-align: justify;
 }
 
 /* ==============================================================================

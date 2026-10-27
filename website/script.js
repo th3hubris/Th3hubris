@@ -14,36 +14,13 @@
   // Publication Manuals Database
   const PUBLICATIONS = [
     {
-      id: "opsec-anonymity",
-      filename: "01_Advanced_OPSEC_and_Anonymity.pdf",
-      url: "pdfs/01_Advanced_OPSEC_and_Anonymity.pdf",
-      title: "01_Advanced_OPSEC_and_Anonymity.pdf",
-      subtitle: "Tor Transparent Proxying (9040), Isolated DNS (9053) & Linux Kernel Kill-Switch",
-      command: "cat /th3hubris/01_Advanced_OPSEC_and_Anonymity.md"
-    },
-    {
-      id: "network-pentest",
-      filename: "02_Network_Penetration_Testing.pdf",
-      url: "pdfs/02_Network_Penetration_Testing.pdf",
-      title: "02_Network_Penetration_Testing.pdf",
-      subtitle: "Tactical Network Reconnaissance, Stealth Port Scanning & Modern IDS/IPS Evasion",
-      command: "cat /th3hubris/02_Network_Penetration_Testing.md"
-    },
-    {
-      id: "kali-hardening",
-      filename: "03_Kali_Linux_Hardening_Manual.pdf",
-      url: "pdfs/03_Kali_Linux_Hardening_Manual.pdf",
-      title: "03_Kali_Linux_Hardening_Manual.pdf",
-      subtitle: "Browser DoH Leak Mitigation, Broadcast Silencing, MAC Cloaking & Immutable Resolv.conf",
-      command: "cat /th3hubris/03_Kali_Linux_Hardening_Manual.md"
-    },
-    {
-      id: "redteam-ops",
-      filename: "04_Red_Teaming_Offensive_Ops.pdf",
-      url: "pdfs/04_Red_Teaming_Offensive_Ops.pdf",
-      title: "04_Red_Teaming_Offensive_Ops.pdf",
-      subtitle: "Adversary Emulation, Multi-Hop SSH/SOCKS Proxy Chains & Anti-Forensic Evasion",
-      command: "cat /th3hubris/04_Red_Teaming_Offensive_Ops.md"
+      id: "network-fundamentals",
+      filename: "أساسيات الشبكات للأمن السيبراني.pdf",
+      url: "pdfs/Network_Fundamentals_For_Cybersecurity.pdf",
+      fallbackUrl: "pdfs/" + encodeURIComponent("أساسيات الشبكات للأمن السيبراني.pdf"),
+      title: "أساسيات الشبكات للأمن السيبراني.pdf",
+      subtitle: "Network Fundamentals for Cybersecurity // Practical Technical Guide",
+      command: "cat /th3hubris/network_fundamentals.md"
     }
   ];
 

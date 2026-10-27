@@ -29,7 +29,7 @@
   <!-- Mozilla PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=2026.5">
+  <link rel="stylesheet" href="style.css?v=2026.6">
 </head>
 <body>
 
@@ -72,11 +72,10 @@
             </a>
           </div>
 
-          <!-- Get In Touch Button -->
+          <!-- Action Buttons -->
           <div class="touch-btn-wrap">
-            <a href="#contactSection" class="btn-touch" id="touchTriggerBtn">
-              Get In Touch
-            </a>
+            <a href="/about" class="btn-touch">About &amp; Ventures</a>
+            <a href="#contactSection" class="btn-touch btn-touch-alt" id="touchTriggerBtn">Get In Touch</a>
           </div>
         </div>
       </div>
@@ -86,7 +85,10 @@
         <h2 class="block-title">Projects:</h2>
         <ul class="clean-bullet-list">
           <li>
-            - <a href="https://github.com/th3hubris/th3hubris" target="_blank" rel="noopener noreferrer" class="link-item">th3hubris</a> - OPSEC &amp; Tor Transparent Proxy
+            - <a href="https://play.google.com/store/apps/details?id=com.diouane.realert" target="_blank" rel="noopener noreferrer" class="link-item"><svg class="play-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3.609 1.814L13.792 12 3.61 22.186c-.194-.2-.31-.48-.31-.806V2.62c0-.326.116-.606.31-.806zm11.233 11.236l2.128 2.128-11.464 6.58 9.336-8.708zM4.506 2.242l11.464 6.58-2.128 2.128-9.336-8.708zm12.396 8.528l3.328 1.912c.51.293.51.767 0 1.06l-3.328 1.912-2.316-2.442 2.316-2.442z"/></svg>Realert</a> - Real-Time Alerting System on Google Play
+          </li>
+          <li>
+            - <a href="https://play.google.com/store/apps/details?id=com.diouane.aurafoot" target="_blank" rel="noopener noreferrer" class="link-item"><svg class="play-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3.609 1.814L13.792 12 3.61 22.186c-.194-.2-.31-.48-.31-.806V2.62c0-.326.116-.606.31-.806zm11.233 11.236l2.128 2.128-11.464 6.58 9.336-8.708zM4.506 2.242l11.464 6.58-2.128 2.128-9.336-8.708zm12.396 8.528l3.328 1.912c.51.293.51.767 0 1.06l-3.328 1.912-2.316-2.442 2.316-2.442z"/></svg>AuraFoot</a> - Mobile Sports Game on Google Play
           </li>
           <li>
             - <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-item">Shadow-Recon</a> - Attack Surface Recon &amp; OSINT Discovery
@@ -102,16 +104,7 @@
         <h2 class="block-title">Research Paper &amp; Publications:</h2>
         <ul class="clean-bullet-list" id="pubList">
           <li>
-            - <a href="#01_Advanced_OPSEC_and_Anonymity" class="link-item pub-trigger" data-id="opsec-anonymity">01_Advanced_OPSEC_and_Anonymity.pdf</a>
-          </li>
-          <li>
-            - <a href="#02_Network_Penetration_Testing" class="link-item pub-trigger" data-id="network-pentest">02_Network_Penetration_Testing.pdf</a>
-          </li>
-          <li>
-            - <a href="#03_Kali_Linux_Hardening_Manual" class="link-item pub-trigger" data-id="kali-hardening">03_Kali_Linux_Hardening_Manual.pdf</a>
-          </li>
-          <li>
-            - <a href="#04_Red_Teaming_Offensive_Ops" class="link-item pub-trigger" data-id="redteam-ops">04_Red_Teaming_Offensive_Ops.pdf</a>
+            - <a href="#network-fundamentals" class="link-item pub-trigger" data-id="network-fundamentals">أساسيات الشبكات للأمن السيبراني.pdf</a>
           </li>
         </ul>
       </section>
@@ -128,7 +121,7 @@
           <a href="https://wa.me/212600000000" target="_blank" rel="noopener noreferrer" class="f-contact-link">WHATSAPP</a>
         </div>
         <div class="f-copyright">
-          TH3HUBRIS &copy; 2026 BY TH3HUBRIS
+          TH3HUBRIS &copy; 2026 BY TH3HUBRIS &bull; <a href="/about" class="link-item">About &amp; Ventures</a>
         </div>
       </footer>
 
@@ -145,7 +138,7 @@
         <div class="prompt-text-group">
           <span class="p-arrow">&gt;</span>
           <span class="p-dollar">$</span>
-          <span class="p-command" id="activeDocCommand">cat /th3hubris/01_Advanced_OPSEC_and_Anonymity.md</span>
+          <span class="p-command" id="activeDocCommand">cat /th3hubris/network_fundamentals.md</span>
           <span class="p-cursor">|</span>
         </div>
         <button type="button" class="btn-terminal-home" id="homeBtn">Home</button>
@@ -155,10 +148,10 @@
       <div class="doc-header-card">
         <div class="doc-header-left">
           <h1 class="doc-headline" id="activeDocHeadline">
-            01_Advanced_OPSEC_and_Anonymity.pdf
+            أساسيات الشبكات للأمن السيبراني.pdf
           </h1>
           <p class="doc-subhead" id="activeDocSubhead">
-            Tor Transparent Proxying, Isolated DNS &amp; Kernel Kill-Switch
+            Network Fundamentals for Cybersecurity // Practical Technical Guide
           </p>
         </div>
 
@@ -226,6 +219,6 @@
     <span id="toastMessage">Done</span>
   </div>
 
-  <script src="script.js?v=2026.5"></script>
+  <script src="script.js?v=2026.6"></script>
 </body>
 </html>
