@@ -1,0 +1,1282 @@
+/* ==============================================================================
+   TH3HUBRIS - OFFICIAL KALI LINUX TERMINAL PORTAL STYLESHEET (2026)
+   Aesthetics: Kali Linux Rolling Release, Dark Terminal, High Contrast Neon
+   ============================================================================== */
+
+:root {
+  --bg-primary: #0e1017;
+  --bg-secondary: #161822;
+  --bg-tertiary: #1f2230;
+  --bg-input: #12141c;
+  
+  --border-color: #2b3044;
+  --border-highlight: #ff3344;
+  --border-cyan: #00d4ff;
+
+  --c-text-main: #f1f5f9;
+  --c-text-dim: #94a3b8;
+  --c-text-muted: #64748b;
+
+  --c-red: #ff3344;
+  --c-red-glow: rgba(255, 51, 68, 0.4);
+  --c-green: #00ff88;
+  --c-green-glow: rgba(0, 255, 136, 0.3);
+  --c-blue: #38bdf8;
+  --c-cyan: #00d4ff;
+  --c-cyan-glow: rgba(0, 212, 255, 0.35);
+  --c-yellow: #ffd166;
+  --c-purple: #bd93f9;
+  --c-white: #ffffff;
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --font-arabic: 'Cairo', 'JetBrains Mono', monospace;
+  
+  --transition-fast: 0.18s ease;
+  --transition-smooth: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Base Reset & Typography */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+  background-color: var(--bg-primary);
+  color: var(--c-text-main);
+  font-family: var(--font-mono);
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Arabic RTL Overrides */
+html[lang="ar"], html[dir="rtl"] {
+  font-family: var(--font-arabic);
+}
+html[lang="ar"] code, 
+html[lang="ar"] pre,
+html[lang="ar"] .ascii-art,
+html[lang="ar"] .typed-command,
+html[lang="ar"] .prompt-user {
+  font-family: var(--font-mono) !important;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+body.terminal-body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(255, 51, 68, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, #0e1017 0%, #0a0c12 100%);
+  padding: 1.5rem 1rem;
+  overflow-x: hidden;
+}
+
+/* Subtle CRT Scanline effect */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.02),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.02)
+  );
+  background-size: 100% 3px, 6px 100%;
+  opacity: 0.65;
+}
+
+/* ==============================================================================
+   LOADING EFFECT & BOOT SEQUENCE (تأثيرات التحميل)
+   ============================================================================== */
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  background-color: #08090d;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.boot-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-inner {
+  width: 90%;
+  max-width: 520px;
+  background: #11131a;
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 51, 68, 0.15);
+}
+
+.boot-line {
+  font-size: 0.95rem;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.5px;
+}
+
+.boot-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #1c1f2e;
+  margin-top: 1.2rem;
+  overflow: hidden;
+  border: 1px solid #2f354a;
+}
+
+.boot-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-cyan), var(--c-green));
+  box-shadow: 0 0 10px var(--c-green-glow);
+  transition: width 0.85s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+/* ==============================================================================
+   HOVER UNDERLINE EFFECT (خط تحت المحتوى الذي نقوم بتأشير عليه بالفأرة)
+   ============================================================================== */
+.cyber-hover, 
+a.cyber-hover,
+button.cyber-hover {
+  position: relative;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.cyber-hover::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--c-cyan);
+  box-shadow: 0 0 8px var(--c-cyan-glow);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+
+html[dir="rtl"] .cyber-hover::after {
+  left: auto;
+  right: 0;
+}
+
+.cyber-hover:hover::after,
+.cyber-hover:focus-visible::after {
+  width: 100%;
+}
+
+.cyber-hover.hover-red::after {
+  background: var(--c-red);
+  box-shadow: 0 0 8px var(--c-red-glow);
+}
+
+/* Color Utility Classes (Kali Palette) */
+.c-red { color: var(--c-red) !important; }
+.c-green { color: var(--c-green) !important; }
+.c-blue { color: var(--c-blue) !important; }
+.c-cyan { color: var(--c-cyan) !important; }
+.c-yellow { color: var(--c-yellow) !important; }
+.c-purple { color: var(--c-purple) !important; }
+.c-white { color: var(--c-white) !important; }
+.c-gray { color: var(--c-text-muted) !important; }
+
+/* ==============================================================================
+   MAIN TERMINAL WINDOW
+   ============================================================================== */
+.terminal-window {
+  width: 100%;
+  max-width: 1220px;
+  margin: 0 auto;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header Bar */
+.terminal-header {
+  background-color: #1a1c27;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  user-select: none;
+}
+
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-btn {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+.btn-close { background-color: #ff5f56; }
+.btn-min   { background-color: #ffbd2e; }
+.btn-max   { background-color: #27c93f; }
+
+.terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-text-dim);
+}
+
+.terminal-icon {
+  color: var(--c-yellow);
+}
+
+.terminal-path {
+  color: var(--c-text-main);
+  letter-spacing: 0.3px;
+}
+
+/* Language Selector */
+.lang-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lang-label {
+  font-size: 0.75rem;
+  color: var(--c-text-muted);
+  font-weight: 700;
+  margin-right: 0.2rem;
+}
+html[dir="rtl"] .lang-label {
+  margin-right: 0;
+  margin-left: 0.2rem;
+}
+
+.lang-btn {
+  background: #11131c;
+  color: var(--c-text-dim);
+  border: 1px solid #2f3448;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.lang-btn:hover {
+  color: var(--c-cyan);
+  border-color: var(--c-cyan);
+  background-color: #171c2b;
+}
+
+.lang-btn.active {
+  color: #0b0c10;
+  background-color: var(--c-cyan);
+  border-color: var(--c-cyan);
+  box-shadow: 0 0 10px var(--c-cyan-glow);
+}
+
+/* ==============================================================================
+   TERMINAL CONTENT & SECTIONS
+   ============================================================================== */
+.terminal-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+/* Prompt Line */
+.prompt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.prompt-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.prompt-user {
+  color: var(--c-cyan);
+}
+
+.prompt-path {
+  color: var(--c-purple);
+}
+
+.prompt-symbol {
+  color: var(--c-cyan);
+}
+
+.typed-command {
+  color: var(--c-white);
+  font-weight: 700;
+}
+
+.terminal-cursor {
+  color: var(--c-cyan);
+  animation: blink 1s steps(2, start) infinite;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ==============================================================================
+   AGGRESSIVE RED KALI ASCII BANNER BOX (Exact match with tool screenshot)
+   ============================================================================== */
+.ascii-banner-box {
+  background-color: #12131b;
+  border: 2px solid var(--c-red);
+  box-shadow: 
+    0 0 18px rgba(255, 51, 68, 0.25),
+    inset 0 0 15px rgba(255, 51, 68, 0.08);
+  padding: 1.2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ascii-art {
+  color: var(--c-red);
+  font-family: monospace;
+  font-size: clamp(0.6rem, 1.35vw, 0.95rem);
+  font-weight: 900;
+  line-height: 1.15;
+  white-space: pre;
+  display: inline-block;
+  text-shadow: 0 0 8px var(--c-red-glow);
+  margin-bottom: 0.8rem;
+}
+
+.banner-subtitles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-top: 1px dashed rgba(255, 51, 68, 0.3);
+  padding-top: 0.75rem;
+}
+
+.banner-tagline {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--c-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.banner-meta {
+  font-size: 0.8rem;
+  color: var(--c-text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.meta-sep {
+  color: var(--c-red);
+}
+
+/* ==============================================================================
+   STATUS MATRIX & LOG FEED
+   ============================================================================== */
+.status-matrix-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  background-color: #13151f;
+  border: 1px solid #232738;
+  padding: 1.25rem;
+  border-radius: 4px;
+}
+
+.log-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.log-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.matrix-table-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.matrix-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.terminal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  border: 1px solid var(--border-cyan);
+}
+
+.terminal-table th,
+.terminal-table td {
+  border: 1px solid var(--border-cyan);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+html[dir="rtl"] .terminal-table th,
+html[dir="rtl"] .terminal-table td {
+  text-align: right;
+}
+
+.terminal-table th {
+  background-color: #172033;
+  color: var(--c-cyan);
+  font-weight: 700;
+}
+
+.terminal-table td {
+  background-color: #0f121a;
+}
+
+/* ==============================================================================
+   PORTAL GRID: PDF VAULT (LEFT) + GITHUB ARSENAL (RIGHT)
+   ============================================================================== */
+.portal-grid {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 1.6rem;
+  align-items: start;
+}
+
+.grid-column {
+  background-color: #141620;
+  border: 1px solid #262a3c;
+  padding: 1.25rem;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.section-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid #262b3d;
+  padding-bottom: 0.7rem;
+}
+
+.badge-index {
+  color: var(--c-red);
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.badge-title {
+  font-size: 0.98rem;
+  color: var(--c-white);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* Search / Grep Input */
+.vault-search-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-input);
+  border: 1px solid #2c3246;
+  padding: 0.45rem 0.75rem;
+  border-radius: 3px;
+  gap: 0.5rem;
+  transition: border-color var(--transition-fast);
+}
+
+.vault-search-bar:focus-within {
+  border-color: var(--c-cyan);
+  box-shadow: 0 0 10px var(--c-cyan-glow);
+}
+
+.grep-prefix {
+  color: var(--c-yellow);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--c-white);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.search-input::placeholder {
+  color: var(--c-text-muted);
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: var(--c-text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  line-height: 1;
+}
+
+.clear-btn:hover {
+  color: var(--c-red);
+}
+
+/* Category Filter Pills */
+.category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pill-btn {
+  background-color: #191c28;
+  border: 1px solid #2d3348;
+  color: var(--c-text-dim);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.74rem;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all var(--transition-fast);
+}
+
+.pill-btn:hover {
+  color: var(--c-cyan);
+  border-color: var(--c-cyan);
+}
+
+.pill-btn.active {
+  background-color: #1d2b3a;
+  border-color: var(--c-cyan);
+  color: var(--c-cyan);
+  box-shadow: 0 0 6px var(--c-cyan-glow);
+}
+
+/* PDF Files List */
+.pdf-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pdf-file-item {
+  background-color: #10121a;
+  border: 1px solid #24293a;
+  padding: 0.85rem 1rem;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.pdf-file-item:hover {
+  border-color: var(--c-cyan);
+  background-color: #141724;
+  transform: translateX(4px);
+}
+html[dir="rtl"] .pdf-file-item:hover {
+  transform: translateX(-4px);
+}
+
+.pdf-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pdf-perm-badge {
+  font-size: 0.74rem;
+  color: var(--c-yellow);
+}
+
+.pdf-category-tag {
+  font-size: 0.7rem;
+  color: var(--c-purple);
+  background-color: #211c2e;
+  border: 1px solid #3d2f57;
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+}
+
+.pdf-title-link {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--c-cyan);
+  display: inline-block;
+  width: fit-content;
+}
+
+.pdf-item-desc {
+  font-size: 0.82rem;
+  color: var(--c-text-dim);
+  line-height: 1.4;
+}
+
+.pdf-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.3rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed #1e2333;
+}
+
+.btn-open-modal {
+  background: none;
+  border: none;
+  color: var(--c-green);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.btn-direct-download {
+  color: var(--c-text-muted);
+  font-size: 0.8rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+.btn-direct-download:hover {
+  color: var(--c-white);
+}
+
+.vault-instructions {
+  font-size: 0.8rem;
+  background-color: #101522;
+  border: 1px solid #1f2a40;
+  padding: 0.65rem 0.85rem;
+  border-radius: 3px;
+  line-height: 1.45;
+}
+
+/* ==============================================================================
+   GITHUB ARSENAL (SIDEBAR)
+   ============================================================================== */
+.tools-intro {
+  font-size: 0.82rem;
+  color: var(--c-text-dim);
+  line-height: 1.45;
+}
+
+.tool-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.tool-card {
+  background-color: #10121a;
+  border: 1px solid #232738;
+  padding: 0.9rem;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: border-color var(--transition-fast);
+}
+
+.tool-card:hover {
+  border-color: var(--c-red);
+}
+
+.tool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+}
+
+.tool-badge-lang {
+  color: var(--c-yellow);
+}
+
+.tool-stars {
+  color: var(--c-green);
+  font-weight: 700;
+}
+
+.tool-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.tool-title a {
+  color: var(--c-white);
+  text-decoration: none;
+}
+
+.tool-title a:hover {
+  color: var(--c-red);
+}
+
+.tool-desc {
+  font-size: 0.8rem;
+  color: var(--c-text-muted);
+  line-height: 1.4;
+}
+
+.tool-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.tool-tags .tag {
+  font-size: 0.7rem;
+  color: var(--c-cyan);
+}
+
+.tool-actions {
+  margin-top: 0.3rem;
+}
+
+.cyber-link {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--c-red);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.cyber-link:hover {
+  color: #ff6b78;
+}
+
+/* Quick Git Clone Box */
+.clone-box {
+  background-color: #0d0f16;
+  border: 1px solid #252a3b;
+  padding: 0.75rem;
+  border-radius: 3px;
+}
+
+.clone-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--c-yellow);
+  margin-bottom: 0.35rem;
+}
+
+.clone-cmd-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background-color: #141724;
+  border: 1px solid #2e344a;
+  padding: 0.4rem 0.6rem;
+  border-radius: 2px;
+}
+
+.clone-cmd-line code {
+  color: var(--c-green);
+  font-size: 0.78rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.copy-clone-btn {
+  background: none;
+  border: none;
+  color: var(--c-cyan);
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.clone-feedback {
+  font-size: 0.75rem;
+  color: var(--c-green);
+  margin-top: 0.3rem;
+  min-height: 1rem;
+}
+
+.btn-github-profile {
+  display: block;
+  text-align: center;
+  background-color: #171b29;
+  border: 1px solid #2e3650;
+  color: var(--c-white);
+  padding: 0.65rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 3px;
+  transition: all var(--transition-fast);
+}
+
+.btn-github-profile:hover {
+  background-color: #21273b;
+  border-color: var(--c-cyan);
+  color: var(--c-cyan);
+}
+
+/* ==============================================================================
+   FOOTER & CONTACT LINKS (Requested: GITHUB, INSTAGRAM, LINKEDIN, WHATSAPP)
+   ============================================================================== */
+.terminal-footer {
+  background-color: #13151f;
+  border-top: 1px solid var(--border-color);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.footer-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.contacts-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--c-yellow);
+  letter-spacing: 0.5px;
+}
+
+.social-links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background-color: #10121a;
+  border: 1px solid #252a3b;
+  padding: 0.65rem 0.95rem;
+  border-radius: 3px;
+  color: var(--c-text-main);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.social-link:hover {
+  background-color: #161a26;
+  border-color: var(--c-cyan);
+  color: var(--c-cyan);
+  transform: translateY(-2px);
+}
+
+.social-icon {
+  flex-shrink: 0;
+  color: var(--c-cyan);
+  transition: color var(--transition-fast);
+}
+
+.social-link:hover .social-icon {
+  color: var(--c-white);
+}
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-top: 1px dashed #202435;
+  padding-top: 1rem;
+  font-size: 0.8rem;
+}
+
+.copyright-line {
+  color: var(--c-text-dim);
+  font-weight: 700;
+}
+
+.system-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.76rem;
+  color: var(--c-text-muted);
+}
+
+.stat-sep {
+  color: #3b4259;
+}
+
+/* ==============================================================================
+   INTERACTIVE IN-PAGE PDF MODAL VIEWER
+   ============================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(8, 10, 16, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.modal-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.modal-terminal-window {
+  width: 100%;
+  max-width: 1050px;
+  height: 90vh;
+  background-color: #151722;
+  border: 2px solid var(--c-cyan);
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.9),
+    0 0 25px var(--c-cyan-glow);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.96) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  background-color: #1a1e2d;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.modal-close-esc-btn {
+  background: none;
+  border: none;
+  color: var(--c-red);
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.modal-close-esc-btn:hover {
+  color: #ff808b;
+}
+
+/* Modal Toolbar (Action + Social Media Suite) */
+.modal-toolbar {
+  background-color: #11131c;
+  border-bottom: 1px solid #232739;
+  padding: 0.55rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn-tool-action {
+  background-color: #1a1e2b;
+  border: 1px solid #2e354c;
+  color: var(--c-white);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-tool-action:hover {
+  background-color: #242a3e;
+  border-color: var(--c-cyan);
+  color: var(--c-cyan);
+}
+
+.toolbar-share-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.share-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: var(--c-yellow);
+  margin-right: 0.2rem;
+}
+html[dir="rtl"] .share-label {
+  margin-right: 0;
+  margin-left: 0.2rem;
+}
+
+.btn-share-icon {
+  background-color: #181c28;
+  border: 1px solid #2c3348;
+  color: var(--c-cyan);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.74rem;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all var(--transition-fast);
+}
+
+.btn-share-icon:hover {
+  background-color: var(--c-cyan);
+  color: #0e1017;
+  box-shadow: 0 0 8px var(--c-cyan-glow);
+}
+
+.btn-share-copy {
+  background-color: #1a221f;
+  border: 1px solid #2a4738;
+  color: var(--c-green);
+  padding: 0.25rem 0.65rem;
+  font-size: 0.74rem;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all var(--transition-fast);
+}
+
+.btn-share-copy:hover {
+  background-color: var(--c-green);
+  color: #0e1017;
+  box-shadow: 0 0 8px var(--c-green-glow);
+}
+
+/* Modal Body */
+.modal-viewer-body {
+  flex: 1;
+  background-color: #090b10;
+  position: relative;
+}
+
+.modal-viewer-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #1a1d27;
+}
+
+.modal-footer-status {
+  background-color: #12141c;
+  border-top: 1px solid #202435;
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ==============================================================================
+   TOAST NOTIFICATION
+   ============================================================================== */
+.cyber-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: #11141e;
+  border: 1px solid var(--c-green);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 15px var(--c-green-glow);
+  padding: 0.65rem 1.1rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  color: var(--c-white);
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+html[dir="rtl"] .cyber-toast {
+  right: auto;
+  left: 2rem;
+}
+
+.cyber-toast.hidden {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+
+.toast-prompt {
+  color: var(--c-green);
+  font-weight: 800;
+}
+
+/* ==============================================================================
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+   ============================================================================== */
+@media (max-width: 960px) {
+  .status-matrix-section {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ascii-banner-box {
+    padding: 0.8rem 0.5rem;
+  }
+
+  .ascii-art {
+    font-size: 2.2vw;
+  }
+}
+
+@media (max-width: 640px) {
+  body.terminal-body {
+    padding: 0.5rem;
+  }
+
+  .terminal-header {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .terminal-title {
+    order: 3;
+    width: 100%;
+    font-size: 0.78rem;
+  }
+
+  .terminal-content {
+    padding: 1rem 0.75rem;
+    gap: 1.2rem;
+  }
+
+  .ascii-art {
+    font-size: 2.6vw;
+  }
+
+  .social-links-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .modal-terminal-window {
+    height: 96vh;
+  }
+
+  .modal-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbar-left,
+  .toolbar-share-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

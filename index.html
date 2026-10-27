@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>TH3HUBRIS | Cybersecurity Engineer & Ethical Hacker | Kali Linux Portal</title>
+  <meta name="description" content="Personal portal & academic cybersecurity vault of TH3HUBRIS. Free PDF security lessons, OPSEC tools, and ethical hacking resources.">
+  <meta name="keywords" content="Cybersecurity, Ethical Hacking, Kali Linux, OPSEC, Anonymity, Penetration Testing, TH3HUBRIS">
+  <meta name="author" content="TH3HUBRIS">
+  
+  <!-- Open Graph / Meta for Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://th3hubris.com/">
+  <meta property="og:title" content="TH3HUBRIS | Cybersecurity Engineer & Ethical Hacker">
+  <meta property="og:description" content="Offensive security tools, zero-leak OPSEC research, and academic PDF lessons.">
+  <meta property="og:image" content="https://th3hubris.com/og-banner.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon SVG Terminal Icon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2317181c'/><text x='15' y='65' fill='%23ff3344' font-family='monospace' font-weight='bold' font-size='50'>#_</text></svg>">
+
+  <!-- Google Fonts: JetBrains Mono for authentic Kali terminal aesthetic & Cairo for clean Arabic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="terminal-body">
+
+  <!-- Scanline CRT Effect Overlay -->
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <!-- Boot Loader Sequence Screen -->
+  <div id="bootScreen" class="boot-screen">
+    <div class="boot-inner">
+      <div class="boot-line"><span class="c-blue">[*]</span> <span id="bootMsg1">Initializing Kali Linux 2026 Environment...</span></div>
+      <div class="boot-line"><span class="c-purple">[OPSEC]</span> <span id="bootMsg2">Loading Th3hubris Kernel Kill-Switch...</span></div>
+      <div class="boot-line"><span class="c-green">[+]</span> <span id="bootMsg3">All systems operational. Zero-Leak verified.</span></div>
+      <div class="boot-progress-bar"><div class="boot-progress-fill" id="bootProgress"></div></div>
+    </div>
+  </div>
+
+  <!-- Main Terminal Container Window -->
+  <div class="terminal-window" id="mainTerminal">
+
+    <!-- Top Window Title Bar (Kali Linux / XFCE Terminal Style) -->
+    <header class="terminal-header">
+      <div class="window-controls">
+        <span class="control-btn btn-close" title="Close"></span>
+        <span class="control-btn btn-min" title="Minimize"></span>
+        <span class="control-btn btn-max" title="Maximize"></span>
+      </div>
+
+      <div class="terminal-title">
+        <span class="terminal-icon">⚡</span>
+        <span class="terminal-path" id="terminalPathTitle">kali@th3hubris: ~/portal/vault</span>
+      </div>
+
+      <!-- Language Selector [ EN | FR | AR ] -->
+      <nav class="lang-selector" aria-label="Language Selector">
+        <span class="lang-label" data-i18n="langLabel">LANG:</span>
+        <button type="button" class="lang-btn active" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="fr">FR</button>
+        <button type="button" class="lang-btn" data-lang="ar">العربية</button>
+      </nav>
+    </header>
+
+    <!-- Terminal Main Body Screen -->
+    <main class="terminal-content">
+
+      <!-- Command Prompt Header -->
+      <section class="prompt-section" aria-label="Command Execution">
+        <div class="prompt-line">
+          <span class="prompt-user">-(kali㉿th3hubris)-</span><span class="prompt-path">[~/workspace]</span>
+        </div>
+        <div class="prompt-line prompt-cmd">
+          <span class="prompt-symbol">-$</span>
+          <span class="typed-command" id="typedCommand">sudo th3hubris --portal --vault</span>
+          <span class="terminal-cursor" aria-hidden="true">█</span>
+        </div>
+      </section>
+
+      <!-- Aggressive Red Kali ASCII Banner Box -->
+      <section class="ascii-banner-box" aria-label="Brand Banner">
+        <pre class="ascii-art" id="asciiLogo">
+  _______ _    ____  _           _          _     
+ |__   __| |  |___ \| |         | |        (_)    
+    | |  | |__  __) | |__  _   _| |__  _ __ _ ___ 
+    | |  | '_ \|__ <| '_ \| | | | '_ \| '__| / __|
+    | |  | | | |__) | | | | |_| | |_) | |  | \__ \
+    |_|  |_| |_|____/|_| |_|\__,_|_.__/|_|  |_|___/
+        </pre>
+        <div class="banner-subtitles">
+          <div class="banner-tagline">
+            <span class="c-red">»»»</span>
+            <span class="tagline-text" data-i18n="tagline">We Build Shadow Soldiers - Ultimate OPSEC & Anonymity Suite</span>
+            <span class="c-red">«««</span>
+          </div>
+          <div class="banner-meta">
+            <span class="meta-item"><span class="c-cyan" data-i18n="engineLabel">Engine:</span> v3.2.0-kali2026</span>
+            <span class="meta-sep">|</span>
+            <span class="meta-item"><span class="c-cyan" data-i18n="targetLabel">Target:</span> Kali Linux Rolling 2026</span>
+            <span class="meta-sep">|</span>
+            <span class="meta-item c-green" data-i18n="statusVerified">Zero-Leak Verified</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Terminal Bio & Security Verification Status Matrix -->
+      <section class="status-matrix-section">
+        <div class="log-feed">
+          <div class="log-item"><span class="c-blue">[*]</span> <span class="c-white" data-i18n="bioRole">Identity:</span> <span class="c-cyan" data-i18n="bioDesc">Cybersecurity Engineer & Ethical Hacker</span></div>
+          <div class="log-item"><span class="c-purple">[OPSEC]</span> <span class="c-white" data-i18n="missionLabel">Focus:</span> <span class="c-gray" data-i18n="missionDesc">Advanced OPSEC, Network Penetration Testing, Red Teaming & Linux Kernel Hardening</span></div>
+          <div class="log-item"><span class="c-green">[+]</span> <span class="c-white" data-i18n="vaultLabel">Academic Vault:</span> <span class="c-green" data-i18n="vaultDesc">All PDF training manuals and cheatsheets are freely accessible below.</span></div>
+          <div class="log-item"><span class="c-yellow">[!]</span> <span class="c-white" data-i18n="noticeLabel">Notice:</span> <span class="c-yellow" data-i18n="noticeDesc">Click any PDF module to read inside the interactive terminal viewer or share.</span></div>
+        </div>
+
+        <div class="matrix-table-wrap">
+          <div class="matrix-title c-red" data-i18n="matrixTitle">Th3hubris Security Verification Matrix</div>
+          <table class="terminal-table">
+            <thead>
+              <tr>
+                <th data-i18n="thParameter">Parameter</th>
+                <th data-i18n="thBaseline">Baseline (Standard)</th>
+                <th data-i18n="thShadow">Hardened (Shadow State)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-i18n="paramIp">IP / Egress DNS</td>
+                <td class="c-red" data-i18n="paramIpExposed">Exposed / ISP Logged</td>
+                <td class="c-green" data-i18n="paramIpShielded">100% Tor + VPN Multipath (0 Leak)</td>
+              </tr>
+              <tr>
+                <td data-i18n="paramKillswitch">Kernel Kill-Switch</td>
+                <td class="c-yellow" data-i18n="paramDisabled">Disabled</td>
+                <td class="c-green" data-i18n="paramArmed">ARMED (iptables drop-all)</td>
+              </tr>
+              <tr>
+                <td data-i18n="paramAcademy">Educational Vault</td>
+                <td class="c-gray">RESTRICTED</td>
+                <td class="c-cyan" data-i18n="paramPublic">OPEN ACCESS (PDF Modules)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Main Portal Grid: PDF Academic Vault (Left) + GitHub Arsenal (Right) -->
+      <div class="portal-grid">
+
+        <!-- Column 1: PDF Academic Vault (Lessons & Modules) -->
+        <section class="grid-column vault-column" aria-label="PDF Lessons Vault">
+          <div class="section-badge">
+            <span class="badge-index">[0x01]</span>
+            <h2 class="badge-title cyber-hover" data-i18n="pdfVaultHeading">ACADEMIC VAULT // PDF LESSONS & MANUALS</h2>
+          </div>
+
+          <!-- Vault Filter & Grep Search Bar -->
+          <div class="vault-search-bar">
+            <span class="grep-prefix">grep -i</span>
+            <input type="text" id="pdfSearchInput" class="search-input" placeholder="filter by name, topic, or keyword..." autocomplete="off" spellcheck="false" data-i18n-placeholder="searchPlaceholder">
+            <button type="button" id="clearSearchBtn" class="clear-btn" title="Clear search">×</button>
+          </div>
+
+          <!-- Category Tags -->
+          <div class="category-pills">
+            <button type="button" class="pill-btn active" data-cat="all" data-i18n="catAll">ALL</button>
+            <button type="button" class="pill-btn" data-cat="opsec" data-i18n="catOpsec">OPSEC</button>
+            <button type="button" class="pill-btn" data-cat="pentest" data-i18n="catPentest">PENTEST</button>
+            <button type="button" class="pill-btn" data-cat="hardening" data-i18n="catHardening">HARDENING</button>
+            <button type="button" class="pill-btn" data-cat="redteam" data-i18n="catRedteam">RED_TEAM</button>
+          </div>
+
+          <!-- PDF List Container -->
+          <div class="pdf-file-list" id="pdfFileList" role="list">
+            <!-- Dynamic PDF items injected via script.js -->
+          </div>
+
+          <div class="vault-instructions">
+            <span class="c-cyan">💡 <span data-i18n="vaultHint">Tip: Click on any lesson link to open it inside the embedded Kali terminal viewer without leaving the site.</span></span>
+          </div>
+        </section>
+
+        <!-- Column 2: GitHub Arsenal & Tools (Sidebar) -->
+        <aside class="grid-column tools-column" aria-label="GitHub Tools Arsenal">
+          <div class="section-badge">
+            <span class="badge-index">[0x02]</span>
+            <h2 class="badge-title cyber-hover" data-i18n="githubHeading">GITHUB ARSENAL & REPOSITORIES</h2>
+          </div>
+
+          <div class="tools-intro" data-i18n="githubIntro">
+            Open-source tactical tools engineered for offensive security, anonymity, and penetration testing on Kali Linux:
+          </div>
+
+          <!-- Tools List -->
+          <div class="tool-cards-list">
+
+            <!-- Tool 1: Th3hubris -->
+            <article class="tool-card">
+              <div class="tool-header">
+                <span class="tool-badge-lang">Python 3.12+</span>
+                <span class="tool-stars">★ 2026 Rolling</span>
+              </div>
+              <h3 class="tool-title cyber-hover">
+                <a href="https://github.com/th3hubris/th3hubris" target="_blank" rel="noopener noreferrer">
+                  th3hubris/th3hubris
+                </a>
+              </h3>
+              <p class="tool-desc" data-i18n="toolTh3hubrisDesc">
+                Ultimate military-grade OPSEC & anonymity orchestrator for Kali Linux. Automated Tor Transparent TCP 9040, DNSPort 9053, and Kernel Kill-Switch.
+              </p>
+              <div class="tool-tags">
+                <span class="tag">#tor</span>
+                <span class="tag">#killswitch</span>
+                <span class="tag">#opsec</span>
+                <span class="tag">#kali</span>
+              </div>
+              <div class="tool-actions">
+                <a href="https://github.com/th3hubris/th3hubris" target="_blank" rel="noopener noreferrer" class="cyber-link" data-i18n="viewRepoBtn">
+                  [ ↗ REPOSITORY ]
+                </a>
+              </div>
+            </article>
+
+            <!-- Tool 2: Shadow-Recon -->
+            <article class="tool-card">
+              <div class="tool-header">
+                <span class="tool-badge-lang">Shell / Bash</span>
+                <span class="tool-stars">★ Tactical</span>
+              </div>
+              <h3 class="tool-title cyber-hover">
+                <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer">
+                  th3hubris/Shadow-Recon
+                </a>
+              </h3>
+              <p class="tool-desc" data-i18n="toolShadowDesc">
+                Automated stealth reconnaissance and attack surface discovery engine utilizing low-emission DNS probes and multi-source OSINT.
+              </p>
+              <div class="tool-tags">
+                <span class="tag">#osint</span>
+                <span class="tag">#recon</span>
+                <span class="tag">#stealth</span>
+              </div>
+              <div class="tool-actions">
+                <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="cyber-link" data-i18n="viewRepoBtn">
+                  [ ↗ REPOSITORY ]
+                </a>
+              </div>
+            </article>
+
+            <!-- Tool 3: ZeroLeak-Kernel -->
+            <article class="tool-card">
+              <div class="tool-header">
+                <span class="tool-badge-lang">C / iptables</span>
+                <span class="tool-stars">★ Hardened</span>
+              </div>
+              <h3 class="tool-title cyber-hover">
+                <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer">
+                  th3hubris/ZeroLeak-Kernel
+                </a>
+              </h3>
+              <p class="tool-desc" data-i18n="toolZeroLeakDesc">
+                Kernel-level firewall rule-setter enforcing complete IPv6 packet dropping and strict outbound interface whitelisting.
+              </p>
+              <div class="tool-tags">
+                <span class="tag">#kernel</span>
+                <span class="tag">#firewall</span>
+                <span class="tag">#security</span>
+              </div>
+              <div class="tool-actions">
+                <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="cyber-link" data-i18n="viewRepoBtn">
+                  [ ↗ REPOSITORY ]
+                </a>
+              </div>
+            </article>
+
+          </div>
+
+          <!-- Quick Git Clone Box -->
+          <div class="clone-box">
+            <div class="clone-label" data-i18n="quickCloneLabel">QUICK GIT CLONE:</div>
+            <div class="clone-cmd-line">
+              <code>git clone https://github.com/th3hubris/th3hubris.git</code>
+              <button type="button" class="copy-clone-btn cyber-hover" id="copyCloneBtn" title="Copy command">
+                [ COPY ]
+              </button>
+            </div>
+            <div class="clone-feedback" id="cloneFeedback"></div>
+          </div>
+
+          <!-- GitHub Profile Action Link -->
+          <div class="github-profile-action">
+            <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="btn-github-profile cyber-hover" data-i18n="allToolsBtn">
+              ⚡ VIEW ALL TOOLS ON GITHUB (@th3hubris)
+            </a>
+          </div>
+        </aside>
+
+      </div>
+
+    </main>
+
+    <!-- Bottom Footer & Contact Links -->
+    <footer class="terminal-footer">
+      <div class="footer-contacts">
+        <div class="contacts-title" data-i18n="contactTitle">COMMUNICATION & CHANNELS:</div>
+        <div class="social-links-grid">
+
+          <!-- 1. GITHUB -->
+          <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="social-link cyber-hover" title="GitHub">
+            <svg class="social-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span class="social-name">GITHUB</span>
+          </a>
+
+          <!-- 2. INSTAGRAM -->
+          <a href="https://instagram.com/th3hubris" target="_blank" rel="noopener noreferrer" class="social-link cyber-hover" title="Instagram">
+            <svg class="social-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+            <span class="social-name">INSTAGRAM</span>
+          </a>
+
+          <!-- 3. LINKEDIN -->
+          <a href="https://linkedin.com/in/th3hubris" target="_blank" rel="noopener noreferrer" class="social-link cyber-hover" title="LinkedIn">
+            <svg class="social-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+            <span class="social-name">LINKEDIN</span>
+          </a>
+
+          <!-- 4. WHATSAPP -->
+          <a href="https://wa.me/212600000000" target="_blank" rel="noopener noreferrer" class="social-link cyber-hover" title="WhatsApp">
+            <svg class="social-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+            </svg>
+            <span class="social-name">WHATSAPP</span>
+          </a>
+
+        </div>
+      </div>
+
+      <!-- Footer Bottom Copyright & Terminal Metadata -->
+      <div class="footer-bottom">
+        <div class="copyright-line">
+          TH3HUBRIS &copy;2026 BY <span class="c-red">TH3HUBRIS</span>
+        </div>
+        <div class="system-stats">
+          <span class="c-green">● SYSTEM: ONLINE</span>
+          <span class="stat-sep">|</span>
+          <span class="c-cyan">PING: 1ms</span>
+          <span class="stat-sep">|</span>
+          <span class="c-purple">ANONYMIZED (SHADOW STATE)</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Interactive Terminal PDF Viewer Modal (Opens inside site) -->
+  <div id="pdfModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalFileName">
+    <div class="modal-terminal-window">
+
+      <!-- Modal Title Bar -->
+      <div class="modal-header">
+        <div class="window-controls">
+          <button type="button" class="control-btn btn-close" id="modalCloseBtnTop" title="Close [ESC]"></button>
+          <span class="control-btn btn-min"></span>
+          <span class="control-btn btn-max"></span>
+        </div>
+        <div class="modal-title">
+          <span class="c-cyan">kali@th3hubris:</span>
+          <span class="c-white">viewer ~/vault/</span><span class="c-green" id="modalFileName">lesson.pdf</span>
+        </div>
+        <button type="button" class="modal-close-esc-btn" id="modalCloseBtnText" title="Close Viewer">
+          [ ESC / CLOSE ]
+        </button>
+      </div>
+
+      <!-- Modal Action Toolbar (Download, Open Tab, Share to Social Media) -->
+      <div class="modal-toolbar">
+        <div class="toolbar-left">
+          <a id="modalDownloadBtn" href="#" download class="btn-tool-action cyber-hover" title="Direct Download">
+            <span class="tool-icon">⬇</span> <span data-i18n="downloadPdfBtn">DOWNLOAD PDF</span>
+          </a>
+          <a id="modalExternalBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-tool-action cyber-hover" title="Open in separate tab">
+            <span class="tool-icon">↗</span> <span data-i18n="openTabBtn">RAW VIEW</span>
+          </a>
+        </div>
+
+        <!-- Social Media Share Suite -->
+        <div class="toolbar-share-group">
+          <span class="share-label" data-i18n="shareLabel">SHARE LESSON:</span>
+          
+          <!-- Share: WhatsApp -->
+          <button type="button" class="btn-share-icon cyber-hover" id="shareWhatsApp" title="Share via WhatsApp">
+            WA
+          </button>
+
+          <!-- Share: LinkedIn -->
+          <button type="button" class="btn-share-icon cyber-hover" id="shareLinkedIn" title="Share on LinkedIn">
+            IN
+          </button>
+
+          <!-- Share: X / Twitter -->
+          <button type="button" class="btn-share-icon cyber-hover" id="shareX" title="Share on X (Twitter)">
+            𝕏
+          </button>
+
+          <!-- Share: Telegram -->
+          <button type="button" class="btn-share-icon cyber-hover" id="shareTelegram" title="Share on Telegram">
+            TG
+          </button>
+
+          <!-- Share: Copy Link -->
+          <button type="button" class="btn-share-copy cyber-hover" id="shareCopyLink" title="Copy Shareable Link">
+            <span id="copyLinkText" data-i18n="copyLinkBtn">[ 📋 COPY LINK ]</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Embedded PDF Display Container -->
+      <div class="modal-viewer-body">
+        <iframe id="pdfFrame" src="" title="PDF Viewer" allowfullscreen></iframe>
+      </div>
+
+      <!-- Modal Bottom Status Line -->
+      <div class="modal-footer-status">
+        <span class="c-green">[+] Document Loaded into Memory</span>
+        <span class="c-gray">| Security Clearance: Level-04 | SHA256 Verified</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Notification Toast for Terminal Alerts (e.g., "Link copied") -->
+  <div id="cyberToast" class="cyber-toast hidden" role="status" aria-live="polite">
+    <span class="toast-prompt">[+]</span> <span id="toastMsg">Notification</span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
