@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+  <title>TH3HUBRIS — Security Researcher</title>
+  <meta name="title" content="TH3HUBRIS — Security Researcher">
+  <meta name="description" content="Personal security portal, research publications, and tactical tools by TH3HUBRIS.">
+  <meta name="author" content="TH3HUBRIS">
+  <meta name="theme-color" content="#16171d">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.th3hubris.com/">
+  <meta property="og:title" content="TH3HUBRIS — Security Researcher">
+  <meta property="og:description" content="Offensive security research, academic manuals, and tactical Kali Linux engines.">
+  <meta property="og:image" content="https://www.th3hubris.com/profile.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="profile.png">
+
+  <!-- Google Fonts: JetBrains Mono + Courier fallback -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Mozilla PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <link rel="stylesheet" href="style.css?v=2026.5">
+</head>
+<body>
+
+  <div class="layout-wrapper">
+
+    <!-- ========================================================================
+         VIEW 1: HOME VIEW (exact hx01.me layout)
+         ======================================================================== -->
+    <div id="homeView" class="view-container active-view">
+
+      <!-- Top Terminal Prompt Line -->
+      <div class="terminal-prompt-row">
+        <span class="p-arrow">&gt;</span>
+        <span class="p-dollar">$</span>
+        <span class="p-command">cat /th3hubris/readme.md</span>
+        <span class="p-cursor">|</span>
+      </div>
+
+      <!-- About Me Box -->
+      <div class="about-card">
+        <div class="about-card-header">
+          About Me
+        </div>
+
+        <div class="about-card-body">
+          <div class="avatar-container">
+            <img src="profile.png" alt="TH3HUBRIS" class="user-avatar">
+          </div>
+
+          <h1 class="user-handle">TH3HUBRIS</h1>
+          <p class="user-headline">Full Time Security Researcher</p>
+          <p class="user-subline">Likes to Break things</p>
+
+          <!-- Social link -->
+          <div class="social-icon-row">
+            <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="social-icon-btn" title="GitHub Profile">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- Get In Touch Button -->
+          <div class="touch-btn-wrap">
+            <a href="#contactSection" class="btn-touch" id="touchTriggerBtn">
+              Get In Touch
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Section -->
+      <section class="info-block">
+        <h2 class="block-title">Projects:</h2>
+        <ul class="clean-bullet-list">
+          <li>
+            - <a href="https://github.com/th3hubris/th3hubris" target="_blank" rel="noopener noreferrer" class="link-item">th3hubris</a> - OPSEC &amp; Tor Transparent Proxy
+          </li>
+          <li>
+            - <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-item">Shadow-Recon</a> - Attack Surface Recon &amp; OSINT Discovery
+          </li>
+          <li>
+            - <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-item">ZeroLeak-Kernel</a> - Netfilter Linux Kernel Firewall
+          </li>
+        </ul>
+      </section>
+
+      <!-- Research Paper & Publications Section -->
+      <section class="info-block">
+        <h2 class="block-title">Research Paper &amp; Publications:</h2>
+        <ul class="clean-bullet-list" id="pubList">
+          <li>
+            - <a href="#01_Advanced_OPSEC_and_Anonymity" class="link-item pub-trigger" data-id="opsec-anonymity">01_Advanced_OPSEC_and_Anonymity.pdf</a>
+          </li>
+          <li>
+            - <a href="#02_Network_Penetration_Testing" class="link-item pub-trigger" data-id="network-pentest">02_Network_Penetration_Testing.pdf</a>
+          </li>
+          <li>
+            - <a href="#03_Kali_Linux_Hardening_Manual" class="link-item pub-trigger" data-id="kali-hardening">03_Kali_Linux_Hardening_Manual.pdf</a>
+          </li>
+          <li>
+            - <a href="#04_Red_Teaming_Offensive_Ops" class="link-item pub-trigger" data-id="redteam-ops">04_Red_Teaming_Offensive_Ops.pdf</a>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Contact & Channels Footer -->
+      <footer class="hx-footer" id="contactSection">
+        <div class="footer-contacts-list">
+          <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">GITHUB</a>
+          <span class="f-sep">/</span>
+          <a href="https://instagram.com/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">INSTAGRAM</a>
+          <span class="f-sep">/</span>
+          <a href="https://linkedin.com/in/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">LINKEDIN</a>
+          <span class="f-sep">/</span>
+          <a href="https://wa.me/212600000000" target="_blank" rel="noopener noreferrer" class="f-contact-link">WHATSAPP</a>
+        </div>
+        <div class="f-copyright">
+          TH3HUBRIS &copy; 2026 BY TH3HUBRIS
+        </div>
+      </footer>
+
+    </div>
+
+
+    <!-- ========================================================================
+         VIEW 2: DOCUMENT / PUBLICATION VIEW (exact hx01.me/hailcsv.htm layout)
+         ======================================================================== -->
+    <div id="docView" class="view-container hidden-view">
+
+      <!-- Top Terminal Prompt Line with Home Button -->
+      <div class="terminal-prompt-row doc-prompt-row">
+        <div class="prompt-text-group">
+          <span class="p-arrow">&gt;</span>
+          <span class="p-dollar">$</span>
+          <span class="p-command" id="activeDocCommand">cat /th3hubris/01_Advanced_OPSEC_and_Anonymity.md</span>
+          <span class="p-cursor">|</span>
+        </div>
+        <button type="button" class="btn-terminal-home" id="homeBtn">Home</button>
+      </div>
+
+      <!-- Publication Header Card -->
+      <div class="doc-header-card">
+        <div class="doc-header-left">
+          <h1 class="doc-headline" id="activeDocHeadline">
+            01_Advanced_OPSEC_and_Anonymity.pdf
+          </h1>
+          <p class="doc-subhead" id="activeDocSubhead">
+            Tor Transparent Proxying, Isolated DNS &amp; Kernel Kill-Switch
+          </p>
+        </div>
+
+        <div class="doc-header-right">
+          <img src="profile.png" alt="TH3HUBRIS" class="doc-avatar-img">
+          <span class="doc-avatar-caption">TH3HUBRIS</span>
+        </div>
+      </div>
+
+      <!-- Controls & Download Bar -->
+      <div class="doc-actions-strip">
+        <div class="strip-pagination">
+          <button type="button" class="btn-strip" id="prevPageBtn">◀ Prev</button>
+          <span class="strip-page-info" id="pageNumberDisplay">Page 1 / 1</span>
+          <button type="button" class="btn-strip" id="nextPageBtn">Next ▶</button>
+          <span class="strip-divider">|</span>
+          <button type="button" class="btn-strip" id="zoomOutBtn">-</button>
+          <span class="strip-zoom-info" id="zoomLevelDisplay">100%</span>
+          <button type="button" class="btn-strip" id="zoomInBtn">+</button>
+        </div>
+
+        <div class="strip-downloads">
+          <a id="downloadDocBtn" href="#" download class="btn-strip-download">⬇ Download PDF</a>
+          <a id="rawDocBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-strip-raw">↗ Raw Tab</a>
+        </div>
+      </div>
+
+      <!-- Social Share Bar -->
+      <div class="doc-share-strip">
+        <span class="share-prompt">Share:</span>
+        <button type="button" class="btn-share-tag" id="shareWhatsApp">WhatsApp</button>
+        <button type="button" class="btn-share-tag" id="shareLinkedIn">LinkedIn</button>
+        <button type="button" class="btn-share-tag" id="shareX">X (Twitter)</button>
+        <button type="button" class="btn-share-tag" id="shareTelegram">Telegram</button>
+        <button type="button" class="btn-share-tag" id="shareCopyLink">📋 Copy Link</button>
+      </div>
+
+      <!-- Dashed Divider Line -->
+      <hr class="doc-dashed-divider">
+
+      <!-- PDF Canvas Reader Viewport -->
+      <div class="doc-canvas-viewport" id="canvasViewport">
+        <div class="canvas-centering-box">
+          <canvas id="pdfCanvas"></canvas>
+        </div>
+
+        <div id="loadingSpinner" class="doc-spinner-box">
+          <div class="terminal-spinner"></div>
+          <span>Loading document via PDF.js...</span>
+        </div>
+      </div>
+
+      <!-- Bottom Home Link -->
+      <div class="doc-bottom-nav">
+        <button type="button" class="btn-terminal-home" id="bottomHomeBtn">&lt; Return to [ /th3hubris/readme.md ]</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toastNotification" class="minimal-toast hidden" role="status" aria-live="polite">
+    <span class="toast-indicator">✓</span>
+    <span id="toastMessage">Done</span>
+  </div>
+
+  <script src="script.js?v=2026.5"></script>
+</body>
+</html>

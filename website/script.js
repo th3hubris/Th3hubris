@@ -1,85 +1,83 @@
 /**
- * TH3HUBRIS — Minimalist Security Researcher Portfolio
- * Clean, lightweight, single-screen controller with Canvas PDF.js reader
+ * TH3HUBRIS — Security Researcher Portfolio Controller
+ * Seamless switching between Home and Document view (exact hx01.me flow)
  */
 
 (function () {
   'use strict';
 
-  // Setup PDF.js worker
+  // Configure PDF.js worker
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   }
 
-  // Academic Manuals Vault
-  const PDF_VAULT = [
+  // Publication Manuals Database
+  const PUBLICATIONS = [
     {
       id: "opsec-anonymity",
       filename: "01_Advanced_OPSEC_and_Anonymity.pdf",
       url: "pdfs/01_Advanced_OPSEC_and_Anonymity.pdf",
-      size: "2.4 KB",
-      tag: "OPSEC",
       title: "01_Advanced_OPSEC_and_Anonymity.pdf",
-      desc: "Tor transparent proxying (9040), zero-leak isolated DNS (9053), OpenVPN failover & kernel kill-switch."
+      subtitle: "Tor Transparent Proxying (9040), Isolated DNS (9053) & Linux Kernel Kill-Switch",
+      command: "cat /th3hubris/01_Advanced_OPSEC_and_Anonymity.md"
     },
     {
       id: "network-pentest",
       filename: "02_Network_Penetration_Testing.pdf",
       url: "pdfs/02_Network_Penetration_Testing.pdf",
-      size: "2.3 KB",
-      tag: "PENTEST",
       title: "02_Network_Penetration_Testing.pdf",
-      desc: "Tactical network reconnaissance, stealth port enumeration, service fingerprinting & IDS/IPS evasion."
+      subtitle: "Tactical Network Reconnaissance, Stealth Port Scanning & Modern IDS/IPS Evasion",
+      command: "cat /th3hubris/02_Network_Penetration_Testing.md"
     },
     {
       id: "kali-hardening",
       filename: "03_Kali_Linux_Hardening_Manual.pdf",
       url: "pdfs/03_Kali_Linux_Hardening_Manual.pdf",
-      size: "2.3 KB",
-      tag: "HARDENING",
       title: "03_Kali_Linux_Hardening_Manual.pdf",
-      desc: "Browser DoH leak mitigation, network broadcast elimination, MAC cloaking & immutable resolv.conf locks."
+      subtitle: "Browser DoH Leak Mitigation, Broadcast Silencing, MAC Cloaking & Immutable Resolv.conf",
+      command: "cat /th3hubris/03_Kali_Linux_Hardening_Manual.md"
     },
     {
       id: "redteam-ops",
       filename: "04_Red_Teaming_Offensive_Ops.pdf",
       url: "pdfs/04_Red_Teaming_Offensive_Ops.pdf",
-      size: "2.2 KB",
-      tag: "RED TEAM",
       title: "04_Red_Teaming_Offensive_Ops.pdf",
-      desc: "Multi-hop SSH/SOCKS adversary emulation, credential harvesting, covert pivoting & anti-forensic hygiene."
+      subtitle: "Adversary Emulation, Multi-Hop SSH/SOCKS Proxy Chains & Anti-Forensic Evasion",
+      command: "cat /th3hubris/04_Red_Teaming_Offensive_Ops.md"
     }
   ];
 
-  // DOM Elements
-  const vaultList = document.getElementById('vaultList');
-  const vaultCount = document.getElementById('vaultCount');
+  // DOM Views
+  const homeView = document.getElementById('homeView');
+  const docView = document.getElementById('docView');
 
-  // Modal & Reader Elements
-  const pdfModal = document.getElementById('pdfModal');
-  const modalCloseBtn = document.getElementById('modalCloseBtn');
-  const modalDocTitle = document.getElementById('modalDocTitle');
-  const modalDownloadLink = document.getElementById('modalDownloadLink');
-  const modalRawLink = document.getElementById('modalRawLink');
+  // Document View Header Elements
+  const activeDocCommand = document.getElementById('activeDocCommand');
+  const activeDocHeadline = document.getElementById('activeDocHeadline');
+  const activeDocSubhead = document.getElementById('activeDocSubhead');
+  const homeBtn = document.getElementById('homeBtn');
+  const bottomHomeBtn = document.getElementById('bottomHomeBtn');
 
-  const pdfCanvas = document.getElementById('pdfCanvas');
-  const loadingSpinner = document.getElementById('loadingSpinner');
+  // Reader Controls
   const prevPageBtn = document.getElementById('prevPageBtn');
   const nextPageBtn = document.getElementById('nextPageBtn');
   const pageNumberDisplay = document.getElementById('pageNumberDisplay');
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
   const zoomLevelDisplay = document.getElementById('zoomLevelDisplay');
+  const downloadDocBtn = document.getElementById('downloadDocBtn');
+  const rawDocBtn = document.getElementById('rawDocBtn');
 
-  // Share Buttons
+  // Canvas & Spinner
+  const pdfCanvas = document.getElementById('pdfCanvas');
+  const loadingSpinner = document.getElementById('loadingSpinner');
+
+  // Social Share Buttons
   const shareWhatsApp = document.getElementById('shareWhatsApp');
   const shareLinkedIn = document.getElementById('shareLinkedIn');
   const shareX = document.getElementById('shareX');
   const shareTelegram = document.getElementById('shareTelegram');
   const shareCopyLink = document.getElementById('shareCopyLink');
-
-  // Clone Snippet
-  const copyCloneBtn = document.getElementById('copyCloneBtn');
 
   // Toast
   const toastNotification = document.getElementById('toastNotification');
@@ -87,7 +85,7 @@
 
   // State
   let currentPdfDoc = null;
-  let activePdfItem = null;
+  let activeItem = null;
   let currentPage = 1;
   let totalPages = 1;
   let currentScale = 1.35;
@@ -96,71 +94,58 @@
   let toastTimer = null;
 
   // ============================================================================
-  // RENDER VAULT LIST
+  // NAVIGATION: HOME <-> DOCUMENT VIEW
   // ============================================================================
-  function renderVault() {
-    if (!vaultList) return;
+  function showHomeView() {
+    docView.classList.remove('active-view');
+    docView.classList.add('hidden-view');
 
-    if (vaultCount) {
-      vaultCount.textContent = `${PDF_VAULT.length} Manuals`;
+    homeView.classList.remove('hidden-view');
+    homeView.classList.add('active-view');
+
+    currentPdfDoc = null;
+    activeItem = null;
+    window.location.hash = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showDocView(item) {
+    activeItem = item;
+
+    if (activeDocCommand) activeDocCommand.textContent = item.command;
+    if (activeDocHeadline) activeDocHeadline.textContent = item.title;
+    if (activeDocSubhead) activeDocSubhead.textContent = item.subtitle;
+
+    if (downloadDocBtn) {
+      downloadDocBtn.href = item.url;
+      downloadDocBtn.setAttribute('download', item.filename);
     }
+    if (rawDocBtn) rawDocBtn.href = item.url;
 
-    vaultList.innerHTML = PDF_VAULT.map(item => `
-      <li class="list-item" data-id="${item.id}">
-        <div class="item-info">
-          <a href="#" class="link-underlined title-link" data-open="${item.id}">
-            ${escapeHtml(item.title)}
-          </a>
-          <span class="item-desc">${escapeHtml(item.desc)}</span>
-        </div>
-        <div class="item-actions">
-          <button type="button" class="btn-inline-action" data-open="${item.id}" title="Read in interactive canvas reader">
-            read
-          </button>
-          <a href="${item.url}" download="${item.filename}" class="btn-inline-download" title="Download direct PDF file">
-            pdf
-          </a>
-        </div>
-      </li>
-    `).join('');
+    homeView.classList.remove('active-view');
+    homeView.classList.add('hidden-view');
 
-    // Attach listeners
-    vaultList.querySelectorAll('[data-open]').forEach(el => {
-      el.addEventListener('click', (e) => {
-        e.preventDefault();
-        const id = el.getAttribute('data-open');
-        const selected = PDF_VAULT.find(p => p.id === id);
-        if (selected) openReader(selected);
-      });
-    });
+    docView.classList.remove('hidden-view');
+    docView.classList.add('active-view');
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    // Load PDF
+    loadPdfDocument(item.url);
   }
 
   // ============================================================================
-  // IN-PAGE CANVAS READER (PDF.JS)
+  // PDF.JS CANVAS READER
   // ============================================================================
-  function openReader(item) {
-    activePdfItem = item;
-
-    if (modalDocTitle) modalDocTitle.textContent = item.filename;
-    if (modalDownloadLink) {
-      modalDownloadLink.href = item.url;
-      modalDownloadLink.setAttribute('download', item.filename);
-    }
-    if (modalRawLink) modalRawLink.href = item.url;
-
-    if (pdfModal) {
-      pdfModal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-    }
-
+  function loadPdfDocument(url) {
     if (loadingSpinner) loadingSpinner.classList.remove('hidden');
     if (pdfCanvas) pdfCanvas.style.display = 'none';
 
     currentPage = 1;
-    const screenWidth = window.innerWidth;
-    if (screenWidth < 640) {
+    const width = window.innerWidth;
+    if (width < 640) {
       currentScale = 0.85;
-    } else if (screenWidth < 1024) {
+    } else if (width < 1024) {
       currentScale = 1.1;
     } else {
       currentScale = 1.35;
@@ -168,16 +153,16 @@
     updateZoomDisplay();
 
     if (window.pdfjsLib) {
-      pdfjsLib.getDocument(item.url).promise.then(pdfDoc_ => {
+      pdfjsLib.getDocument(url).promise.then(pdfDoc_ => {
         currentPdfDoc = pdfDoc_;
         totalPages = currentPdfDoc.numPages;
         renderCanvasPage(currentPage);
       }).catch(err => {
-        console.warn('PDF.js render failed, invoking fallback:', err);
-        renderFallbackViewer(item.url);
+        console.warn('PDF.js loading failed, falling back:', err);
+        renderFallback(url);
       });
     } else {
-      renderFallbackViewer(item.url);
+      renderFallback(url);
     }
   }
 
@@ -237,30 +222,18 @@
     }
   }
 
-  function renderFallbackViewer(url) {
+  function renderFallback(url) {
     if (loadingSpinner) loadingSpinner.classList.add('hidden');
-    const wrapper = document.querySelector('.canvas-wrapper');
-    if (wrapper) {
-      wrapper.innerHTML = `
+    const box = document.querySelector('.canvas-centering-box');
+    if (box) {
+      box.innerHTML = `
         <div style="width: 100%; text-align: center; padding: 1.5rem;">
-          <iframe src="${url}" style="width: 100%; height: 70vh; border: none; background: #ffffff;" title="PDF Manual"></iframe>
+          <iframe src="${url}" style="width: 100%; height: 70vh; border: none; background: #fff;" title="Document"></iframe>
           <p style="margin-top: 1rem;">
-            <a href="${url}" download class="btn-action-primary">⬇ Direct Download PDF</a>
+            <a href="${url}" download class="btn-strip-download">⬇ Direct Download PDF</a>
           </p>
         </div>
       `;
-    }
-  }
-
-  function closeReader() {
-    if (pdfModal) pdfModal.classList.add('hidden');
-    document.body.style.overflow = '';
-    currentPdfDoc = null;
-    activePdfItem = null;
-
-    const wrapper = document.querySelector('.canvas-wrapper');
-    if (wrapper && !document.getElementById('pdfCanvas')) {
-      wrapper.innerHTML = `<canvas id="pdfCanvas"></canvas>`;
     }
   }
 
@@ -271,45 +244,45 @@
   }
 
   // ============================================================================
-  // SOCIAL SHARING
+  // SOCIAL SHARE
   // ============================================================================
-  function getShareInfo() {
-    if (!activePdfItem) {
+  function getShareDetails() {
+    if (!activeItem) {
       return {
-        title: 'TH3HUBRIS — Cybersecurity Engineer & Ethical Hacker',
+        title: 'TH3HUBRIS — Security Researcher',
         url: window.location.href
       };
     }
-    const title = `${activePdfItem.title} | TH3HUBRIS Research`;
-    const fileUrl = new URL(activePdfItem.url, window.location.href).href;
-    return { title, url: fileUrl };
+    const title = `${activeItem.title} | TH3HUBRIS Research`;
+    const fullUrl = new URL(activeItem.url, window.location.href).href;
+    return { title, url: fullUrl };
   }
 
   function shareWhatsAppHandler() {
-    const { title, url } = getShareInfo();
-    const text = `🛡️ ${title}\nRead technical manual: ${url}`;
+    const { title, url } = getShareDetails();
+    const text = `🛡️ ${title}\nRead paper: ${url}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   }
 
   function shareLinkedInHandler() {
-    const { url } = getShareInfo();
+    const { url } = getShareDetails();
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer,width=650,height=600');
   }
 
   function shareXHandler() {
-    const { title, url } = getShareInfo();
-    const tweet = `Check out "${title}" by @th3hubris #Cybersecurity #BugBounty`;
+    const { title, url } = getShareDetails();
+    const tweet = `Check out "${title}" by @th3hubris #SecurityResearch #BugBounty`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer,width=650,height=500');
   }
 
   function shareTelegramHandler() {
-    const { title, url } = getShareInfo();
+    const { title, url } = getShareDetails();
     window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`, '_blank', 'noopener,noreferrer');
   }
 
   function copyLinkHandler() {
-    const { url } = getShareInfo();
-    copyTextToClipboard(url, 'Document link copied to clipboard!');
+    const { url } = getShareDetails();
+    copyText(url, 'Document link copied to clipboard!');
   }
 
   // ============================================================================
@@ -326,7 +299,7 @@
     }, 2800);
   }
 
-  function copyTextToClipboard(text, successMsg) {
+  function copyText(text, successMsg) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
         showToast(successMsg);
@@ -354,37 +327,28 @@
     document.body.removeChild(textarea);
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
   function init() {
-    renderVault();
-
-    // Modal listeners
-    if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeReader);
-    if (pdfModal) {
-      pdfModal.addEventListener('click', (e) => {
-        if (e.target === pdfModal) closeReader();
+    // Publication triggers
+    document.querySelectorAll('.pub-trigger').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = link.getAttribute('data-id');
+        const item = PUBLICATIONS.find(p => p.id === id);
+        if (item) {
+          window.location.hash = item.id;
+          showDocView(item);
+        }
       });
-    }
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && pdfModal && !pdfModal.classList.contains('hidden')) {
-        closeReader();
-      }
     });
 
-    // Reader controls
+    // Navigation buttons
+    if (homeBtn) homeBtn.addEventListener('click', showHomeView);
+    if (bottomHomeBtn) bottomHomeBtn.addEventListener('click', showHomeView);
+
+    // Pagination
     if (prevPageBtn) {
       prevPageBtn.addEventListener('click', () => {
         if (currentPage <= 1) return;
@@ -401,6 +365,7 @@
       });
     }
 
+    // Zoom
     if (zoomInBtn) {
       zoomInBtn.addEventListener('click', () => {
         if (currentScale >= 2.5) return;
@@ -419,21 +384,29 @@
       });
     }
 
-    // Share listeners
+    // Shares
     if (shareWhatsApp) shareWhatsApp.addEventListener('click', shareWhatsAppHandler);
     if (shareLinkedIn) shareLinkedIn.addEventListener('click', shareLinkedInHandler);
     if (shareX) shareX.addEventListener('click', shareXHandler);
     if (shareTelegram) shareTelegram.addEventListener('click', shareTelegramHandler);
     if (shareCopyLink) shareCopyLink.addEventListener('click', copyLinkHandler);
 
-    // Quick clone
-    if (copyCloneBtn) {
-      copyCloneBtn.addEventListener('click', () => {
-        const cmd = 'git clone https://github.com/th3hubris/th3hubris.git';
-        copyTextToClipboard(cmd, 'Clone command copied!');
-        copyCloneBtn.textContent = 'COPIED';
-        setTimeout(() => { copyCloneBtn.textContent = 'COPY'; }, 2500);
-      });
+    // Hash change detection (supports back/forward buttons)
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.replace('#', '');
+      if (!hash) {
+        showHomeView();
+      } else {
+        const item = PUBLICATIONS.find(p => p.id === hash);
+        if (item) showDocView(item);
+      }
+    });
+
+    // Check initial hash
+    const initialHash = window.location.hash.replace('#', '');
+    if (initialHash) {
+      const item = PUBLICATIONS.find(p => p.id === initialHash);
+      if (item) showDocView(item);
     }
   }
 

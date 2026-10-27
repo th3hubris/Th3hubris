@@ -1,10 +1,8 @@
-__pycache__
+tool/
+__pycache__/
+*.py
 *.pyc
 *.pyo
-th3hubris.py
-requirements.txt
-install.sh
-SECURITY.md
-CONTRIBUTING.md
+*.sh
 .git
 .github

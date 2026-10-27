@@ -2,6 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/website/$1" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -37,33 +40,11 @@
       ]
     },
     {
-      "source": "/pdfs/(.*)",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/pdf"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/(.*).(css|js)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/(.*).(svg|png|jpg|ico)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, must-revalidate"
         }
       ]
     }
