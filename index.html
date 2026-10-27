@@ -5,412 +5,177 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-  <!-- Primary Meta Tags -->
   <title>TH3HUBRIS — Cybersecurity Engineer & Ethical Hacker</title>
   <meta name="title" content="TH3HUBRIS — Cybersecurity Engineer & Ethical Hacker">
-  <meta name="description" content="Personal portal, offensive security research, and free academic PDF manuals by TH3HUBRIS. Specializing in OPSEC architectures, penetration testing, and kernel defense.">
-  <meta name="keywords" content="TH3HUBRIS, Cybersecurity Engineer, Ethical Hacker, OPSEC, Penetration Testing, Kali Linux, Red Teaming, Linux Kernel Hardening">
+  <meta name="description" content="Personal security portal, technical manuals, and research by TH3HUBRIS. Specializing in OPSEC, penetration testing, and kernel defense.">
   <meta name="author" content="TH3HUBRIS">
-  <meta name="theme-color" content="#090a0f">
+  <meta name="theme-color" content="#0d0f14">
 
-  <!-- Open Graph / Facebook / LinkedIn -->
+  <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.th3hubris.com/">
   <meta property="og:title" content="TH3HUBRIS — Cybersecurity Engineer & Ethical Hacker">
-  <meta property="og:description" content="Personal portal, offensive security research, and academic PDF training manuals.">
-  <meta property="og:image" content="https://www.th3hubris.com/og-image.png">
+  <meta property="og:description" content="Personal security portal, technical research manuals, and tactical offensive security tools.">
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="https://www.th3hubris.com/">
-  <meta name="twitter:title" content="TH3HUBRIS — Cybersecurity Engineer & Ethical Hacker">
-  <meta name="twitter:description" content="Offensive security engineering, OPSEC architecture, and academic security manuals.">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f1118'/><text x='16' y='65' fill='%2338bdf8' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='48'>TH</text></svg>">
-
-  <!-- Modern Fonts: Inter for ultra-clean UI & JetBrains Mono for technical precision -->
+  <!-- Fonts & PDF.js Engine -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Mozilla PDF.js (Guaranteed Cross-Device Canvas Reader) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=2026.2">
+  <link rel="stylesheet" href="style.css?v=2026.4">
 </head>
-<body class="dark-theme">
+<body>
 
-  <!-- Background Ambient Glow -->
-  <div class="ambient-glow" aria-hidden="true"></div>
+  <!-- Single-Screen Minimalist Layout -->
+  <div class="page-wrapper">
+    <main class="single-screen-content">
 
-  <div class="app-layout">
-
-    <!-- Top Navigation -->
-    <header class="navbar">
-      <div class="nav-container">
-        <a href="#hero" class="nav-brand">
-          <span class="brand-monogram">TH</span>
-          <span class="brand-name">TH3HUBRIS</span>
-        </a>
-
-        <div class="nav-status-badge">
-          <span class="pulse-dot"></span>
-          <span class="status-label">Security Engineer &bull; Verified</span>
+      <!-- Header / Identity -->
+      <header class="profile-header">
+        <div class="name-row">
+          <h1 class="brand-name">TH3HUBRIS</h1>
+          <span class="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text">Available</span>
+          </span>
         </div>
-      </div>
-    </header>
-
-    <!-- Hero Section -->
-    <section class="hero-section" id="hero">
-      <div class="hero-container">
-        
-        <div class="badge-pill">
-          <span class="badge-icon">🛡️</span>
-          <span>OFFENSIVE SECURITY &bull; RED TEAM &bull; OPSEC ARCHITECT</span>
-        </div>
-
-        <h1 class="hero-heading">
-          Hi, I'm <span class="hero-gradient">TH3HUBRIS</span>
-        </h1>
-
-        <p class="hero-role">
-          Senior Cybersecurity Engineer <span class="role-divider">&bull;</span> Ethical Hacker
+        <p class="role-title">Cybersecurity Engineer &bull; Ethical Hacker &bull; Bug Hunter</p>
+        <p class="bio-text">
+          Focusing on offensive security research, OPSEC architectures, multi-hop anonymous routing, and Linux kernel hardening. Author of technical training manuals and tactical open-source engines.
         </p>
+      </header>
 
-        <p class="hero-description">
-          Specialized in advanced OPSEC infrastructure, multi-hop anonymous routing, automated penetration testing, and Linux kernel hardening. This portal serves as my academic repository, housing specialized training manuals and open-source tactical tools.
-        </p>
-
-        <!-- Official Domain Pill -->
-        <div class="domain-pill">
-          <span class="pill-prefix">Official Gateway:</span>
-          <a href="https://www.th3hubris.com/" class="domain-link" target="_blank" rel="noopener noreferrer">
-            https://www.th3hubris.com/ <span class="arrow-icon">↗</span>
-          </a>
+      <!-- Section 1: Research & PDF Manuals -->
+      <section class="content-section" aria-labelledby="sec-research">
+        <div class="section-heading-row">
+          <h2 id="sec-research" class="section-heading">Research &amp; Manuals</h2>
+          <span class="section-count" id="vaultCount">4 Manuals</span>
         </div>
 
-        <!-- Quick Jump Links -->
-        <div class="hero-cta-group">
-          <a href="#vault" class="cta-button primary-cta">
-            <span>📚 Browse Academic Vault</span>
-          </a>
-          <a href="#tools" class="cta-button secondary-cta">
-            <span>⚔️ GitHub Arsenal</span>
-          </a>
+        <ul class="minimal-list" id="vaultList" role="list">
+          <!-- Populated dynamically via script.js -->
+        </ul>
+      </section>
+
+      <!-- Section 2: Open Source Tactical Tools -->
+      <section class="content-section" aria-labelledby="sec-tools">
+        <div class="section-heading-row">
+          <h2 id="sec-tools" class="section-heading">Open Source Tools</h2>
+          <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="subtle-link">github.com/th3hubris ↗</a>
         </div>
 
-      </div>
-    </section>
+        <ul class="minimal-list" role="list">
+          <li class="list-item">
+            <div class="item-info">
+              <a href="https://github.com/th3hubris/th3hubris" target="_blank" rel="noopener noreferrer" class="link-underlined title-link">
+                th3hubris/th3hubris
+              </a>
+              <span class="item-desc">Military-grade OPSEC & Tor transparent proxy with kernel kill-switch</span>
+            </div>
+            <span class="tag-pill">Python</span>
+          </li>
 
-    <!-- Main Content Grid -->
-    <main class="content-container">
+          <li class="list-item">
+            <div class="item-info">
+              <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-underlined title-link">
+                th3hubris/Shadow-Recon
+              </a>
+              <span class="item-desc">Attack surface recon, passive OSINT discovery & stealth probes</span>
+            </div>
+            <span class="tag-pill">Shell</span>
+          </li>
 
-      <!-- Section 1: Academic Vault (PDF Lessons & Whitepapers) -->
-      <section class="section-block" id="vault" aria-labelledby="vault-heading">
-        <div class="section-header">
-          <div>
-            <div class="section-pretitle">[0x01] RESEARCH &amp; EDUCATION</div>
-            <h2 id="vault-heading" class="section-title">Academic Vault // PDF Manuals</h2>
-          </div>
-          <div class="vault-stats" id="vaultStats">4 Manuals Available</div>
-        </div>
+          <li class="list-item">
+            <div class="item-info">
+              <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-underlined title-link">
+                th3hubris/ZeroLeak-Kernel
+              </a>
+              <span class="item-desc">Netfilter firewall orchestrator & egress interface bounding</span>
+            </div>
+            <span class="tag-pill">C</span>
+          </li>
+        </ul>
 
-        <p class="section-subtitle">
-          Comprehensive, field-tested technical manuals. All modules can be read directly on-screen or downloaded as offline PDF reference manuals.
-        </p>
-
-        <!-- Search & Filter Bar -->
-        <div class="filter-bar">
-          <div class="search-wrap">
-            <span class="search-symbol">🔍</span>
-            <input type="text" id="searchInput" class="search-field" placeholder="Search lessons by topic, keyword, or tool (e.g. Tor, Nmap, Kernel, Egress)..." autocomplete="off" spellcheck="false">
-            <button type="button" id="clearBtn" class="clear-search-btn" title="Clear filter" aria-label="Clear filter">×</button>
-          </div>
-        </div>
-
-        <!-- Documents Cards Grid -->
-        <div class="vault-grid" id="vaultGrid" role="list">
-          <!-- Dynamically populated via script.js -->
-        </div>
-
-        <!-- In-Page Reader Notice -->
-        <div class="vault-hint">
-          <span class="hint-bullet">⚡</span>
-          <span>Click on <strong>[ Read Document ]</strong> to render and inspect the full PDF inside the interactive canvas reader without navigating away.</span>
+        <!-- Minimal Quick Clone Terminal -->
+        <div class="minimal-clone-bar">
+          <span class="clone-prompt">$</span>
+          <code class="clone-command">git clone https://github.com/th3hubris/th3hubris.git</code>
+          <button type="button" class="btn-copy-mini" id="copyCloneBtn">COPY</button>
         </div>
       </section>
 
-      <!-- Section 2: GitHub Arsenal & Repositories -->
-      <section class="section-block" id="tools" aria-labelledby="tools-heading">
-        <div class="section-header">
-          <div>
-            <div class="section-pretitle">[0x02] OPEN SOURCE ARSENAL</div>
-            <h2 id="tools-heading" class="section-title">GitHub Repositories &amp; Tools</h2>
-          </div>
-          <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="github-header-link">
-            <span>@th3hubris on GitHub</span> <span class="arrow-icon">↗</span>
-          </a>
+      <!-- Footer: Exactly 4 requested contacts + Copyright -->
+      <footer class="minimal-footer">
+        <nav class="contact-links" aria-label="Channels">
+          <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-underlined contact-link">GITHUB</a>
+          <span class="divider">/</span>
+          <a href="https://instagram.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-underlined contact-link">INSTAGRAM</a>
+          <span class="divider">/</span>
+          <a href="https://linkedin.com/in/th3hubris" target="_blank" rel="noopener noreferrer" class="link-underlined contact-link">LINKEDIN</a>
+          <span class="divider">/</span>
+          <a href="https://wa.me/212600000000" target="_blank" rel="noopener noreferrer" class="link-underlined contact-link">WHATSAPP</a>
+        </nav>
+
+        <div class="copyright-row">
+          <span class="copyright-tag">TH3HUBRIS &copy; 2026 BY TH3HUBRIS</span>
+          <span class="sec-label">Zero-Leak Architecture</span>
         </div>
-
-        <p class="section-subtitle">
-          Battle-tested offensive security engines, anonymity orchestrators, and system defense suites authored by TH3HUBRIS:
-        </p>
-
-        <!-- Repositories Grid -->
-        <div class="tools-grid">
-
-          <!-- Card 1: Th3hubris -->
-          <article class="tool-card">
-            <div class="tool-top">
-              <div class="tool-title-row">
-                <svg class="repo-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-                <h3 class="tool-name">
-                  <a href="https://github.com/th3hubris/th3hubris" target="_blank" rel="noopener noreferrer" class="link-hover">
-                    th3hubris/th3hubris
-                  </a>
-                </h3>
-              </div>
-              <span class="lang-badge badge-python">Python 3.12+</span>
-            </div>
-
-            <p class="tool-description">
-              Military-grade OPSEC & anonymity orchestrator for Kali Linux. Features automated Tor Transparent TCP proxying (port 9040), zero-leak remote DNS (port 9053), dynamic OpenVPN failover, and low-level Linux kernel kill-switch.
-            </p>
-
-            <div class="tool-tags">
-              <span class="chip">#opsec</span>
-              <span class="chip">#tor</span>
-              <span class="chip">#killswitch</span>
-              <span class="chip">#kali</span>
-            </div>
-
-            <div class="tool-bottom">
-              <a href="https://github.com/th3hubris/th3hubris" target="_blank" rel="noopener noreferrer" class="tool-link link-hover">
-                <span>View on GitHub</span> <span class="arrow-icon">↗</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Card 2: Shadow-Recon -->
-          <article class="tool-card">
-            <div class="tool-top">
-              <div class="tool-title-row">
-                <svg class="repo-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-                <h3 class="tool-name">
-                  <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-hover">
-                    th3hubris/Shadow-Recon
-                  </a>
-                </h3>
-              </div>
-              <span class="lang-badge badge-shell">Shell / Bash</span>
-            </div>
-
-            <p class="tool-description">
-              Passive and active attack surface mapper. Employs low-emission DNS probes, multi-engine OSINT harvesting, and sub-domain takeover scanning designed for covert reconnaissance engagements.
-            </p>
-
-            <div class="tool-tags">
-              <span class="chip">#osint</span>
-              <span class="chip">#recon</span>
-              <span class="chip">#stealth</span>
-            </div>
-
-            <div class="tool-bottom">
-              <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="tool-link link-hover">
-                <span>View on GitHub</span> <span class="arrow-icon">↗</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Card 3: ZeroLeak-Kernel -->
-          <article class="tool-card">
-            <div class="tool-top">
-              <div class="tool-title-row">
-                <svg class="repo-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-                <h3 class="tool-name">
-                  <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="link-hover">
-                    th3hubris/ZeroLeak-Kernel
-                  </a>
-                </h3>
-              </div>
-              <span class="lang-badge badge-c">C / Netfilter</span>
-            </div>
-
-            <p class="tool-description">
-              Kernel-level Linux firewall orchestrator. Enforces absolute IPv6 drop policies, strict egress interface bounding, and automatic fail-closed kill-switch triggers.
-            </p>
-
-            <div class="tool-tags">
-              <span class="chip">#kernel</span>
-              <span class="chip">#iptables</span>
-              <span class="chip">#firewall</span>
-            </div>
-
-            <div class="tool-bottom">
-              <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="tool-link link-hover">
-                <span>View on GitHub</span> <span class="arrow-icon">↗</span>
-              </a>
-            </div>
-          </article>
-
-        </div>
-
-        <!-- Terminal Quick Clone Box -->
-        <div class="clone-card">
-          <div class="clone-header">
-            <span class="terminal-dot red"></span>
-            <span class="terminal-dot yellow"></span>
-            <span class="terminal-dot green"></span>
-            <span class="clone-title">QUICK CLONE VIA GIT</span>
-          </div>
-
-          <div class="clone-input-row">
-            <code class="clone-code">git clone https://github.com/th3hubris/th3hubris.git</code>
-            <button type="button" class="btn-copy-action" id="copyCloneBtn">
-              <span id="copyCloneText">COPY</span>
-            </button>
-          </div>
-          <div class="clone-status" id="cloneStatus"></div>
-        </div>
-      </section>
+      </footer>
 
     </main>
-
-    <!-- Footer: Requested 4 Contact Links + Copyright -->
-    <footer class="site-footer">
-      <div class="footer-inner">
-
-        <div class="footer-contacts-section">
-          <h3 class="footer-section-title">COMMUNICATION &amp; CHANNELS:</h3>
-          <div class="contacts-grid">
-
-            <!-- 1. GITHUB -->
-            <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="contact-card link-hover" title="GitHub Profile">
-              <svg class="contact-svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-              </svg>
-              <div class="contact-info">
-                <span class="contact-name">GITHUB</span>
-                <span class="contact-handle">@th3hubris</span>
-              </div>
-            </a>
-
-            <!-- 2. INSTAGRAM -->
-            <a href="https://instagram.com/th3hubris" target="_blank" rel="noopener noreferrer" class="contact-card link-hover" title="Instagram">
-              <svg class="contact-svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-              </svg>
-              <div class="contact-info">
-                <span class="contact-name">INSTAGRAM</span>
-                <span class="contact-handle">@th3hubris</span>
-              </div>
-            </a>
-
-            <!-- 3. LINKEDIN -->
-            <a href="https://linkedin.com/in/th3hubris" target="_blank" rel="noopener noreferrer" class="contact-card link-hover" title="LinkedIn Profile">
-              <svg class="contact-svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-              </svg>
-              <div class="contact-info">
-                <span class="contact-name">LINKEDIN</span>
-                <span class="contact-handle">/in/th3hubris</span>
-              </div>
-            </a>
-
-            <!-- 4. WHATSAPP -->
-            <a href="https://wa.me/212600000000" target="_blank" rel="noopener noreferrer" class="contact-card link-hover" title="WhatsApp Direct">
-              <svg class="contact-svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-              </svg>
-              <div class="contact-info">
-                <span class="contact-name">WHATSAPP</span>
-                <span class="contact-handle">Secure Direct</span>
-              </div>
-            </a>
-
-          </div>
-        </div>
-
-        <div class="footer-bottom-bar">
-          <div class="copyright-badge">
-            <span class="copyright-text">TH3HUBRIS &copy;2026 BY TH3HUBRIS</span>
-          </div>
-
-          <div class="security-meta">
-            <span class="badge-dot"></span>
-            <span>Zero-Leak Architecture &bull; Hardened Environment &bull; Kali 2026</span>
-          </div>
-        </div>
-
-      </div>
-    </footer>
-
   </div>
 
   <!-- In-Page Interactive PDF Reader Modal -->
-  <div id="pdfModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalDocTitle">
-    <div class="modal-dialog">
+  <div id="pdfModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalDocTitle">
+    <div class="modal-container">
 
-      <!-- Modal Top Bar -->
-      <div class="modal-header">
-        <div class="doc-header-info">
+      <!-- Modal Header -->
+      <div class="modal-top">
+        <div class="modal-meta">
           <span class="doc-badge">PDF</span>
-          <h3 id="modalDocTitle" class="doc-header-title">01_Advanced_OPSEC_and_Anonymity.pdf</h3>
+          <h3 id="modalDocTitle" class="doc-title">Document Viewer</h3>
         </div>
-
-        <button type="button" class="modal-close-button" id="modalCloseBtn" aria-label="Close modal">
-          ×
-        </button>
+        <button type="button" class="btn-modal-close" id="modalCloseBtn" aria-label="Close viewer">×</button>
       </div>
 
-      <!-- Reader Controls & Downloads -->
-      <div class="modal-controls-bar">
-        <div class="page-controls">
-          <button type="button" class="ctrl-btn" id="prevPageBtn" title="Previous page">◀ Prev</button>
-          <span class="page-text" id="pageNumberDisplay">Page 1 / 1</span>
-          <button type="button" class="ctrl-btn" id="nextPageBtn" title="Next page">Next ▶</button>
-          <span class="ctrl-separator">|</span>
-          <button type="button" class="ctrl-btn" id="zoomOutBtn" title="Zoom out">-</button>
-          <span class="zoom-text" id="zoomLevelDisplay">100%</span>
-          <button type="button" class="ctrl-btn" id="zoomInBtn" title="Zoom in">+</button>
+      <!-- Controls & Actions -->
+      <div class="modal-toolbar">
+        <div class="pagination-controls">
+          <button type="button" class="ctrl-btn" id="prevPageBtn">◀ Prev</button>
+          <span class="ctrl-indicator" id="pageNumberDisplay">Page 1 / 1</span>
+          <button type="button" class="ctrl-btn" id="nextPageBtn">Next ▶</button>
+          <span class="ctrl-sep">|</span>
+          <button type="button" class="ctrl-btn" id="zoomOutBtn">-</button>
+          <span class="ctrl-indicator" id="zoomLevelDisplay">100%</span>
+          <button type="button" class="ctrl-btn" id="zoomInBtn">+</button>
         </div>
 
-        <div class="download-links">
-          <a id="modalDownloadLink" href="#" download class="btn-download-action">
-            <span>⬇ Download PDF</span>
-          </a>
-          <a id="modalRawLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-raw-action">
-            <span>↗ Raw Tab</span>
-          </a>
+        <div class="file-actions">
+          <a id="modalDownloadLink" href="#" download class="btn-action-primary">⬇ Download PDF</a>
+          <a id="modalRawLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-action-ghost">↗ Raw Tab</a>
         </div>
       </div>
 
-      <!-- Social Media Share Suite -->
-      <div class="modal-share-bar">
-        <span class="share-heading">SHARE MANUAL:</span>
-        <button type="button" class="share-pill share-whatsapp" id="shareWhatsApp">WhatsApp</button>
-        <button type="button" class="share-pill share-linkedin" id="shareLinkedIn">LinkedIn</button>
-        <button type="button" class="share-pill share-x" id="shareX">X (Twitter)</button>
-        <button type="button" class="share-pill share-telegram" id="shareTelegram">Telegram</button>
-        <button type="button" class="share-pill share-copy" id="shareCopyLink">📋 Copy Link</button>
+      <!-- Share Bar -->
+      <div class="modal-share-row">
+        <span class="share-lbl">Share:</span>
+        <button type="button" class="btn-share-mini" id="shareWhatsApp">WhatsApp</button>
+        <button type="button" class="btn-share-mini" id="shareLinkedIn">LinkedIn</button>
+        <button type="button" class="btn-share-mini" id="shareX">X (Twitter)</button>
+        <button type="button" class="btn-share-mini" id="shareTelegram">Telegram</button>
+        <button type="button" class="btn-share-mini" id="shareCopyLink">📋 Copy Link</button>
       </div>
 
-      <!-- PDF Canvas Viewport Container -->
-      <div class="modal-canvas-viewport" id="canvasViewport">
-        <div class="canvas-centering-wrapper">
+      <!-- Canvas Viewport -->
+      <div class="modal-viewport" id="canvasViewport">
+        <div class="canvas-wrapper">
           <canvas id="pdfCanvas"></canvas>
         </div>
 
-        <div id="loadingSpinner" class="reader-spinner">
-          <div class="spin-ring"></div>
-          <span>Loading and rendering document...</span>
+        <div id="loadingSpinner" class="spinner-overlay">
+          <div class="spinner-circle"></div>
+          <span>Rendering document...</span>
         </div>
       </div>
 
@@ -418,11 +183,11 @@
   </div>
 
   <!-- Notification Toast -->
-  <div id="toastNotification" class="toast-popup hidden" role="status" aria-live="polite">
-    <span class="toast-icon">✓</span>
-    <span id="toastMessage">Notification message</span>
+  <div id="toastNotification" class="toast-bubble hidden" role="status" aria-live="polite">
+    <span class="toast-symbol">✓</span>
+    <span id="toastMessage">Done</span>
   </div>
 
-  <script src="script.js?v=2026.2"></script>
+  <script src="script.js?v=2026.4"></script>
 </body>
 </html>
