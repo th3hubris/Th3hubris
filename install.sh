@@ -42,7 +42,7 @@ cat << 'EOF'
 
 EOF
 echo -e "${WHITE}  »»» We Build Shadow Soldiers - Ultimate OPSEC Suite «««${NC}"
-echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.0.0)${NC}\n"
+echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.1.0)${NC}\n"
 
 # 1. Enforce Root Privileges
 if [[ "$EUID" -ne 0 ]]; then
@@ -91,26 +91,31 @@ mkdir -p "$STATE_DIR"
 chmod 700 "$CONFIG_DIR"
 chmod 755 "$STATE_DIR"
 
-# 4. Pre-configure Tor defaults
-echo -e "${BLUE}[*] Step 5: Pre-configuring Tor Transparent Proxying & ControlPort in /etc/tor/torrc...${NC}"
+# 4. Pre-configure Tor defaults cleanly (Zero Duplication)
+echo -e "${BLUE}[*] Step 5: Sanitizing and configuring Tor Transparent Proxying (/etc/tor/torrc)...${NC}"
 mkdir -p /etc/tor
 touch /etc/tor/torrc
 
-if ! grep -q "VirtualAddrNetworkIPv4" /etc/tor/torrc; then
-    cat << 'TORRC_EOF' >> /etc/tor/torrc
+# Remove any previous duplicates of managed keys in /etc/tor/torrc
+sed -i -E '/^(SocksPort|TransPort|DNSPort|VirtualAddrNetworkIPv4|AutomapHostsOnResolve|ControlPort|CookieAuthentication)/Id' /etc/tor/torrc || true
 
-# Added by Th3hubris for System-Wide Transparent Proxying
+cat << 'TORRC_EOF' >> /etc/tor/torrc
+
+# Added by Th3hubris for System-Wide Transparent Proxying & Control
+SocksPort 127.0.0.1:9050
+TransPort 127.0.0.1:9040
+DNSPort 127.0.0.1:9053
 VirtualAddrNetworkIPv4 10.192.0.0/10
 AutomapHostsOnResolve 1
-TransPort 127.0.0.1:9040
-DNSPort 127.0.0.1:5353
-ControlPort 9051
+ControlPort 127.0.0.1:9051
 CookieAuthentication 0
 TORRC_EOF
-fi
 
-systemctl enable tor 2>/dev/null || true
-systemctl restart tor 2>/dev/null || true
+# Reset systemd failure limit lock and enable tor@default instance
+systemctl reset-failed tor@default tor 2>/dev/null || true
+systemctl enable tor@default 2>/dev/null || true
+pkill -9 -f /usr/bin/tor 2>/dev/null || true
+systemctl restart tor@default 2>/dev/null || true
 
 # 5. Deploy system-wide installation & binary wrappers
 echo -e "${BLUE}[*] Step 6: Deploying Th3hubris to /opt and system binary paths...${NC}"
@@ -134,6 +139,7 @@ echo -e "\n${GREEN}[+] INSTALLATION COMPLETE!${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "${GREEN}[✔] Th3hubris installed to: ${CYAN}${OPT_DIR}${NC}"
 echo -e "${GREEN}[✔] Global binary created at: ${CYAN}${BIN_PRIMARY}${NC} & ${CYAN}${BIN_LOCAL}${NC}"
+echo -e "${GREEN}[✔] Tor configuration sanitized: DNSPort:9053 | TransPort:9040 | SOCKS:9050${NC}"
 echo -e "${GREEN}[✔] Kali Linux 2026 networking stack verified.${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "\n${CYAN}Quick Start Commands:${NC}"

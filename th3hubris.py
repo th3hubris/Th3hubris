@@ -59,7 +59,7 @@ except ImportError:
 # GLOBAL CONSTANTS & PATH DEFINITIONS
 # ==============================================================================
 TOOL_NAME = "Th3hubris"
-VERSION = "3.0.0-kali2026"
+VERSION = "3.1.0-kali2026"
 TAGLINE = "We Build Shadow Soldiers - Ultimate OPSEC & Anonymity Suite"
 
 STATE_DIR = Path("/var/run/th3hubris")
@@ -75,7 +75,7 @@ TORRC_PATH = Path("/etc/tor/torrc")
 TOR_CONTROL_PORT = 9051
 TOR_SOCKS_PORT = 9050
 TOR_TRANS_PORT = 9040
-TOR_DNS_PORT = 5353
+TOR_DNS_PORT = 9053  # Dedicated port avoiding mDNS / kdeconnectd collision on 5353
 
 OPENVPN_PID_FILE = STATE_DIR / "openvpn.pid"
 OPENVPN_CONFIG_FILE = STATE_DIR / "active_tunnel.ovpn"
@@ -555,7 +555,7 @@ class DnsManager:
         try:
             RESOLV_CONF.write_text(content, encoding="utf-8")
             subprocess.run(["chattr", "+i", str(RESOLV_CONF)], capture_output=True, text=True)
-            Logger.success("DNS configuration locked to local Tor transparent resolver (127.0.0.1:53 -> 5353).")
+            Logger.success(f"DNS configuration locked to local Tor transparent resolver (127.0.0.1:53 -> {TOR_DNS_PORT}).")
         except OSError as e:
             Logger.warn(f"Could not write/lock /etc/resolv.conf: {e}")
 
@@ -721,11 +721,12 @@ class TorManager:
 
     @classmethod
     def is_service_active(cls) -> bool:
-        for unit in ("tor", "tor@default"):
-            res = subprocess.run(["systemctl", "is-active", unit], capture_output=True, text=True)
-            if res.stdout.strip() == "active":
-                return True
-        return False
+        # Check actual instance tor@default, not dummy master unit tor.service
+        res = subprocess.run(["systemctl", "is-active", "tor@default"], capture_output=True, text=True)
+        if res.stdout.strip() == "active":
+            return True
+        res_master = subprocess.run(["systemctl", "is-active", "tor"], capture_output=True, text=True)
+        return res_master.stdout.strip() == "active"
 
     @classmethod
     def is_port_listening(cls, host: str, port: int, timeout: float = 1.0) -> bool:
@@ -737,48 +738,77 @@ class TorManager:
 
     @classmethod
     def ensure_transparent_configuration(cls) -> None:
-        """Injects necessary TransPort, DNSPort, VirtualAddr, and ControlPort into torrc."""
+        """Sanitizes /etc/tor/torrc and injects clean, deduplicated transparent proxy directives."""
         TORRC_PATH.parent.mkdir(parents=True, exist_ok=True)
-        content = ""
+        raw_lines = []
         if TORRC_PATH.exists():
             try:
-                content = TORRC_PATH.read_text(encoding="utf-8")
+                raw_lines = TORRC_PATH.read_text(encoding="utf-8").splitlines()
             except OSError:
-                content = ""
+                raw_lines = []
 
-        needed: List[str] = []
-        if not re.search(r"^VirtualAddrNetworkIPv4\s+10\.192\.0\.0/10", content, re.MULTILINE):
-            needed.append("VirtualAddrNetworkIPv4 10.192.0.0/10")
-        if not re.search(r"^AutomapHostsOnResolve\s+1", content, re.MULTILINE):
-            needed.append("AutomapHostsOnResolve 1")
-        if not re.search(r"^TransPort\s+(?:127\.0\.0\.1:)?9040", content, re.MULTILINE):
-            needed.append("TransPort 127.0.0.1:9040")
-        if not re.search(r"^DNSPort\s+(?:127\.0\.0\.1:)?5353", content, re.MULTILINE):
-            needed.append("DNSPort 127.0.0.1:5353")
-        if not re.search(r"^ControlPort\s+9051", content, re.MULTILINE):
-            needed.append("ControlPort 9051")
-        if not re.search(r"^CookieAuthentication\s+0", content, re.MULTILINE):
-            needed.append("CookieAuthentication 0")
+        # Strip any existing directives that could duplicate or conflict
+        managed_keys = {
+            "virtualaddrnetworkipv4",
+            "automaphostsonresolve",
+            "transport",
+            "dnsport",
+            "controlport",
+            "cookieauthentication",
+            "socksport",
+        }
 
-        if needed:
-            Logger.info("Configuring Tor Transparent Proxying & ControlPort in /etc/tor/torrc...")
-            try:
-                with open(TORRC_PATH, "a", encoding="utf-8") as f:
-                    f.write("\n# Added by Th3hubris for System-Wide Transparent Proxying\n" + "\n".join(needed) + "\n")
-            except OSError as e:
-                Logger.warn(f"Failed to append to /etc/tor/torrc: {e}")
+        sanitized_lines: List[str] = []
+        for line in raw_lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                sanitized_lines.append(line)
+                continue
+            key = stripped.split()[0].lower()
+            if key in managed_keys:
+                continue
+            sanitized_lines.append(line)
+
+        # Append clean, deduplicated configuration block
+        managed_block = [
+            "",
+            "# Added by Th3hubris for System-Wide Transparent Proxying & Control",
+            "SocksPort 127.0.0.1:9050",
+            f"TransPort 127.0.0.1:{TOR_TRANS_PORT}",
+            f"DNSPort 127.0.0.1:{TOR_DNS_PORT}",
+            "VirtualAddrNetworkIPv4 10.192.0.0/10",
+            "AutomapHostsOnResolve 1",
+            f"ControlPort 127.0.0.1:{TOR_CONTROL_PORT}",
+            "CookieAuthentication 0",
+            "",
+        ]
+        sanitized_lines.extend(managed_block)
+
+        try:
+            TORRC_PATH.write_text("\n".join(sanitized_lines) + "\n", encoding="utf-8")
+            Logger.info(f"Tor configuration sanitized & deduplicated (/etc/tor/torrc). DNSPort: {TOR_DNS_PORT}")
+        except OSError as e:
+            Logger.warn(f"Failed to write /etc/tor/torrc: {e}")
 
     @classmethod
     def start_tor(cls) -> bool:
         cls.ensure_transparent_configuration()
         Logger.opsec("Starting and initializing Tor Onion Routing Daemon (Transparent Mode)...")
 
-        # Restart Tor daemon to guarantee fresh torrc config is applied
-        for unit in ("tor@default", "tor"):
-            subprocess.run(["systemctl", "restart", unit], capture_output=True, text=True)
+        # 1. Reset systemd failed counter to clear 'start-limit-hit'
+        subprocess.run(["systemctl", "reset-failed", "tor@default", "tor"], capture_output=True, text=True)
 
-        # Actively poll sockets until ports are open and operational
-        Logger.info("Awaiting Tor socket initialization (TransPort:9040, DNSPort:5353, SOCKS:9050)...")
+        # 2. Terminate any orphaned Tor processes holding ports
+        subprocess.run(["pkill", "-9", "-f", "/usr/bin/tor"], capture_output=True, text=True)
+        time.sleep(0.5)
+
+        # 3. Start tor@default instance
+        res_restart = subprocess.run(["systemctl", "restart", "tor@default"], capture_output=True, text=True)
+        if res_restart.returncode != 0:
+            Logger.warn(f"systemctl restart tor@default returned {res_restart.returncode}: {res_restart.stderr.strip()}")
+
+        # 4. Actively poll sockets until ports are open and operational
+        Logger.info(f"Awaiting Tor socket initialization (TransPort:{TOR_TRANS_PORT}, DNSPort:{TOR_DNS_PORT}, SOCKS:{TOR_SOCKS_PORT})...")
         ports_ready = False
         for attempt in range(15):
             time.sleep(1.0)
@@ -791,12 +821,13 @@ class TorManager:
                 break
 
         if not ports_ready:
-            Logger.warn("Tor sockets not completely bound after 15s. Checking service health...")
-            if not cls.is_service_active():
-                Logger.error("Tor service failed to reach active state.")
-                return False
+            Logger.error("Tor daemon failed to bind sockets after 15 seconds.")
+            log_res = subprocess.run(["journalctl", "-u", "tor@default", "-n", "8", "--no-pager"], capture_output=True, text=True)
+            if log_res.stdout.strip():
+                print(f"{TermColors.RED}{log_res.stdout.strip()}{TermColors.RESET}\n")
+            return False
 
-        # Verify Tor DNSPort resolution directly
+        # 5. Verify Tor DNSPort resolution directly
         dns_ready = False
         for _ in range(5):
             if DnsManager.send_raw_dns_query("check.torproject.org", server="127.0.0.1", port=TOR_DNS_PORT, timeout=2.0):
@@ -805,7 +836,7 @@ class TorManager:
             time.sleep(1.0)
 
         if dns_ready:
-            Logger.success("Tor daemon operational: TransPort:9040 | DNSPort:5353 | SOCKS5:9050 [bold green]ONLINE[/bold green]")
+            Logger.success(f"Tor daemon operational: TransPort:{TOR_TRANS_PORT} | DNSPort:{TOR_DNS_PORT} | SOCKS5:{TOR_SOCKS_PORT} [bold green]ONLINE[/bold green]")
         else:
             Logger.info("Tor daemon running (DNS circuit bootstrap in progress). Proceeding...")
 
@@ -846,8 +877,8 @@ class TorManager:
     def stop_tor_if_started(cls, was_running_initially: bool) -> None:
         if not was_running_initially:
             Logger.info("Stopping Tor daemon started by Th3hubris...")
-            subprocess.run(["systemctl", "stop", "tor"], capture_output=True, text=True)
             subprocess.run(["systemctl", "stop", "tor@default"], capture_output=True, text=True)
+            subprocess.run(["systemctl", "stop", "tor"], capture_output=True, text=True)
             Logger.success("Tor daemon stopped.")
 
 
@@ -868,7 +899,7 @@ class VpnManager:
                 import urllib.request
                 req = urllib.request.Request(
                     VPN_GATE_API_URL,
-                    headers={"User-Agent": "Mozilla/5.0 (Kali Linux 2026; x86_64) Th3hubris/3.0.0"},
+                    headers={"User-Agent": "Mozilla/5.0 (Kali Linux 2026; x86_64) Th3hubris/3.1.0"},
                 )
                 with urllib.request.urlopen(req, timeout=8) as response:
                     raw_csv = response.read().decode("utf-8", errors="ignore")
@@ -886,7 +917,7 @@ class VpnManager:
                         "http": "socks5h://127.0.0.1:9050",
                         "https": "socks5h://127.0.0.1:9050",
                     }
-                    r = requests.get(VPN_GATE_API_URL, proxies=proxies, timeout=12, headers={"User-Agent": "Mozilla/5.0 Th3hubris/3.0.0"})
+                    r = requests.get(VPN_GATE_API_URL, proxies=proxies, timeout=12, headers={"User-Agent": "Mozilla/5.0 Th3hubris/3.1.0"})
                     if r.status_code == 200 and "HostName" in r.text:
                         raw_csv = r.text
                 if not raw_csv or "HostName" not in raw_csv:
@@ -1040,7 +1071,7 @@ class KillSwitchManager:
     """Enforces absolute firewall isolation: real IP never leaks if tunnel drops.
     
     Implements standard transparent routing:
-      1. DNS requests intercepted and redirected to Tor DNSPort (5353) BEFORE loopback.
+      1. DNS requests intercepted and redirected to Tor DNSPort (9053) BEFORE loopback.
       2. TCP connections redirected to Tor TransPort (9040).
       3. Hard kill-switch drops all plaintext leakage.
     """
@@ -1104,7 +1135,7 @@ class KillSwitchManager:
             text=True,
         )
 
-        # CRITICAL FIX: Intercept ALL DNS queries (UDP & TCP port 53) and redirect to Tor DNSPort (5353)
+        # CRITICAL FIX: Intercept ALL DNS queries (UDP & TCP port 53) and redirect to Tor DNSPort (9053)
         # MUST be placed BEFORE -o lo -j RETURN so queries to 127.0.0.1:53 are not returned without redirect!
         subprocess.run(
             [
@@ -1385,7 +1416,7 @@ class Th3hubrisOrchestrator:
         # 5. Tor Onion Routing Initialization & Socket Verification
         self.state.tor_was_running = TorManager.is_service_active()
         if not TorManager.start_tor():
-            Logger.error("Tor initialization failed. Aborting pipeline.")
+            Logger.error("Tor initialization failed. Aborting pipeline to prevent unencrypted leaks.")
             self.stop()
             return
 
@@ -1407,13 +1438,12 @@ class Th3hubrisOrchestrator:
         time.sleep(1.5)
         dns_ok = DnsManager.send_raw_dns_query("check.torproject.org", server="127.0.0.1", port=53, timeout=3.0)
         if dns_ok:
-            Logger.success("End-to-End DNS Resolution verified ([bold green]127.0.0.1:53 -> Tor 5353[/bold green]). Zero Leaks.")
+            Logger.success(f"End-to-End DNS Resolution verified ([bold green]127.0.0.1:53 -> Tor {TOR_DNS_PORT}[/bold green]). Zero Leaks.")
         else:
             Logger.warn("DNS check through system resolver took longer than expected. Testing via SOCKS proxy...")
 
         # 9. Post-Activation Egress IP Verification Matrix
         Logger.info("Conducting egress audit through transparent proxy & Tor pipeline...")
-        # Direct audit (tests transparent proxy without socks flags!)
         direct_shadow = NetworkAuditor.get_public_ip(via_tor_socks=False)
         if direct_shadow.get("ip") and direct_shadow.get("ip") != "Offline / Unreachable":
             shadow = direct_shadow
