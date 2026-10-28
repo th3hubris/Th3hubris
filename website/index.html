@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
+  <!-- Cache Invalidation Meta Tags -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <title>TH3HUBRIS — Security Researcher</title>
   <meta name="title" content="TH3HUBRIS — Security Researcher">
   <meta name="description" content="Personal security portal, research publications, and tactical tools by TH3HUBRIS.">
@@ -21,24 +26,17 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="profile.png">
 
-  <!-- Google Fonts: JetBrains Mono + Courier fallback -->
+  <!-- Google Fonts: JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Mozilla PDF.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-  <link rel="stylesheet" href="style.css?v=2026.6">
+  <link rel="stylesheet" href="style.css?v=2026.10">
 </head>
 <body>
 
   <div class="layout-wrapper">
-
-    <!-- ========================================================================
-         VIEW 1: HOME VIEW (exact hx01.me layout)
-         ======================================================================== -->
-    <div id="homeView" class="view-container active-view">
+    <main class="view-container active-view">
 
       <!-- Top Terminal Prompt Line -->
       <div class="terminal-prompt-row">
@@ -48,7 +46,7 @@
         <span class="p-cursor">|</span>
       </div>
 
-      <!-- About Me Box -->
+      <!-- About Me Box (hx01.me style) -->
       <div class="about-card">
         <div class="about-card-header">
           About Me
@@ -99,9 +97,9 @@
       <!-- Research Paper & Publications Section -->
       <section class="info-block">
         <h2 class="block-title">Research Paper &amp; Publications:</h2>
-        <ul class="clean-bullet-list" id="pubList">
+        <ul class="clean-bullet-list">
           <li>
-            - <a href="#network-fundamentals" class="link-item pub-trigger" data-id="network-fundamentals">أساسيات الشبكات للأمن السيبراني.pdf</a>
+            - <a href="/network-fundamentals" class="link-item">أساسيات الشبكات للأمن السيبراني.pdf</a>
           </li>
         </ul>
       </section>
@@ -122,100 +120,8 @@
         </div>
       </footer>
 
-    </div>
-
-
-    <!-- ========================================================================
-         VIEW 2: DOCUMENT / PUBLICATION VIEW (exact hx01.me/hailcsv.htm layout)
-         ======================================================================== -->
-    <div id="docView" class="view-container hidden-view">
-
-      <!-- Top Terminal Prompt Line with Home Button -->
-      <div class="terminal-prompt-row doc-prompt-row">
-        <div class="prompt-text-group">
-          <span class="p-arrow">&gt;</span>
-          <span class="p-dollar">$</span>
-          <span class="p-command" id="activeDocCommand">cat /th3hubris/network_fundamentals.md</span>
-          <span class="p-cursor">|</span>
-        </div>
-        <button type="button" class="btn-terminal-home" id="homeBtn">Home</button>
-      </div>
-
-      <!-- Publication Header Card -->
-      <div class="doc-header-card">
-        <div class="doc-header-left">
-          <h1 class="doc-headline" id="activeDocHeadline">
-            أساسيات الشبكات للأمن السيبراني.pdf
-          </h1>
-          <p class="doc-subhead" id="activeDocSubhead">
-            Network Fundamentals for Cybersecurity // Practical Technical Guide
-          </p>
-        </div>
-
-        <div class="doc-header-right">
-          <img src="profile.png" alt="TH3HUBRIS" class="doc-avatar-img">
-          <span class="doc-avatar-caption">TH3HUBRIS</span>
-        </div>
-      </div>
-
-      <!-- Controls & Download Bar -->
-      <div class="doc-actions-strip">
-        <div class="strip-pagination">
-          <button type="button" class="btn-strip" id="prevPageBtn">◀ Prev</button>
-          <span class="strip-page-info" id="pageNumberDisplay">Page 1 / 1</span>
-          <button type="button" class="btn-strip" id="nextPageBtn">Next ▶</button>
-          <span class="strip-divider">|</span>
-          <button type="button" class="btn-strip" id="zoomOutBtn">-</button>
-          <span class="strip-zoom-info" id="zoomLevelDisplay">100%</span>
-          <button type="button" class="btn-strip" id="zoomInBtn">+</button>
-        </div>
-
-        <div class="strip-downloads">
-          <a id="downloadDocBtn" href="#" download class="btn-strip-download">⬇ Download PDF</a>
-          <a id="rawDocBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-strip-raw">↗ Raw Tab</a>
-        </div>
-      </div>
-
-      <!-- Social Share Bar -->
-      <div class="doc-share-strip">
-        <span class="share-prompt">Share:</span>
-        <button type="button" class="btn-share-tag" id="shareWhatsApp">WhatsApp</button>
-        <button type="button" class="btn-share-tag" id="shareLinkedIn">LinkedIn</button>
-        <button type="button" class="btn-share-tag" id="shareX">X (Twitter)</button>
-        <button type="button" class="btn-share-tag" id="shareTelegram">Telegram</button>
-        <button type="button" class="btn-share-tag" id="shareCopyLink">📋 Copy Link</button>
-      </div>
-
-      <!-- Dashed Divider Line -->
-      <hr class="doc-dashed-divider">
-
-      <!-- PDF Canvas Reader Viewport -->
-      <div class="doc-canvas-viewport" id="canvasViewport">
-        <div class="canvas-centering-box">
-          <canvas id="pdfCanvas"></canvas>
-        </div>
-
-        <div id="loadingSpinner" class="doc-spinner-box">
-          <div class="terminal-spinner"></div>
-          <span>Loading document via PDF.js...</span>
-        </div>
-      </div>
-
-      <!-- Bottom Home Link -->
-      <div class="doc-bottom-nav">
-        <button type="button" class="btn-terminal-home" id="bottomHomeBtn">&lt; Return to [ /th3hubris/readme.md ]</button>
-      </div>
-
-    </div>
-
+    </main>
   </div>
 
-  <!-- Notification Toast -->
-  <div id="toastNotification" class="minimal-toast hidden" role="status" aria-live="polite">
-    <span class="toast-indicator">✓</span>
-    <span id="toastMessage">Done</span>
-  </div>
-
-  <script src="script.js?v=2026.6"></script>
 </body>
 </html>
