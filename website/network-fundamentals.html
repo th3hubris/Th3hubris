@@ -72,9 +72,15 @@
       <!-- Controls & Download Bar -->
       <div class="doc-actions-strip">
         <div class="strip-pagination">
-          <button type="button" class="btn-strip" id="prevPageBtn">◀ Prev</button>
+          <button type="button" class="btn-strip" id="prevPageBtn">
+            <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z"/></svg>
+            <span>Prev</span>
+          </button>
           <span class="strip-page-info" id="pageNumberDisplay">Page 1 / 1</span>
-          <button type="button" class="btn-strip" id="nextPageBtn">Next ▶</button>
+          <button type="button" class="btn-strip" id="nextPageBtn">
+            <span>Next</span>
+            <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z"/></svg>
+          </button>
           <span class="strip-divider">|</span>
           <button type="button" class="btn-strip" id="zoomOutBtn">-</button>
           <span class="strip-zoom-info" id="zoomLevelDisplay">100%</span>
@@ -82,7 +88,10 @@
         </div>
 
         <div class="strip-downloads">
-          <a id="downloadDocBtn" href="pdfs/Network_Fundamentals_For_Cybersecurity.pdf" download="أساسيات الشبكات للأمن السيبراني.pdf" class="btn-strip-download">⬇ Download PDF</a>
+          <a id="downloadDocBtn" href="pdfs/Network_Fundamentals_For_Cybersecurity.pdf" download="أساسيات الشبكات للأمن السيبراني.pdf" class="btn-strip-download">
+            <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+            <span>Download PDF</span>
+          </a>
           <a id="rawDocBtn" href="pdfs/Network_Fundamentals_For_Cybersecurity.pdf" target="_blank" rel="noopener noreferrer" class="btn-strip-raw">↗ Raw Tab</a>
         </div>
       </div>
@@ -94,7 +103,10 @@
         <button type="button" class="btn-share-tag" id="shareLinkedIn">LinkedIn</button>
         <button type="button" class="btn-share-tag" id="shareX">X (Twitter)</button>
         <button type="button" class="btn-share-tag" id="shareTelegram">Telegram</button>
-        <button type="button" class="btn-share-tag" id="shareCopyLink">📋 Copy Link</button>
+        <button type="button" class="btn-share-tag" id="shareCopyLink">
+          <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M760-200H320q-33 0-56.5-23.5T240-280v-560q0-33 23.5-56.5T320-920h280l240 240v400q0 33-23.5 56.5T760-200ZM560-640v-200H320v560h440v-360H560ZM160-40q-33 0-56.5-23.5T80-120v-560h80v560h440v80H160Zm160-800v200-200 560-560Z"/></svg>
+          <span>Copy Link</span>
+        </button>
       </div>
 
       <!-- Dashed Divider Line -->

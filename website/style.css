@@ -482,6 +482,9 @@ html, body {
   font-family: inherit;
   border-radius: 2px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .btn-strip:hover:not(:disabled) {
@@ -518,6 +521,9 @@ html, body {
   padding: 3px 8px;
   border-radius: 2px;
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .btn-strip-download:hover {
@@ -556,11 +562,20 @@ html, body {
   padding: 2px 7px;
   border-radius: 2px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .btn-share-tag:hover {
   color: var(--term-cyan);
   border-color: var(--term-cyan);
+}
+
+.strip-svg {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 /* Canvas Viewport */
