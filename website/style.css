@@ -345,6 +345,20 @@ html, body {
   color: var(--text-dark);
 }
 
+.mcal-badge {
+  color: #e5c07b; /* Pale yellow / Muted Amber */
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px dotted rgba(229, 192, 123, 0.45);
+  cursor: help;
+  letter-spacing: 0.5px;
+}
+
+.mcal-badge:hover {
+  color: #f7d794;
+  border-bottom-color: #f7d794;
+}
+
 /* ==============================================================================
    VIEW 2: PUBLICATION / READER VIEW (Exact hx01.me/hailcsv.htm layout)
    ============================================================================== */

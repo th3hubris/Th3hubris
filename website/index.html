@@ -138,12 +138,21 @@
           <a href="https://wa.me/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">WHATSAPP</a>
         </div>
         <div class="f-copyright">
-          TH3HUBRIS &copy; 2026 BY TH3HUBRIS &bull; <a href="/about" class="link-item">About &amp; Ventures</a>
+          TH3HUBRIS &copy; <span class="auto-year">2026</span> BY <abbr class="mcal-badge" title="Morocco Cyber &amp; AI Lab">MCAL</abbr> &bull; <a href="/about" class="link-item">About &amp; Ventures</a>
         </div>
       </footer>
 
     </main>
   </div>
 
+  <script>
+    (function() {
+      var y = new Date().getFullYear();
+      var els = document.querySelectorAll('.auto-year');
+      for (var i = 0; i < els.length; i++) {
+        els[i].textContent = y;
+      }
+    })();
+  </script>
 </body>
 </html>
