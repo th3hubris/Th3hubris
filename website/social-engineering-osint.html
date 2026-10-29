@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+  <!-- Cache Invalidation Meta Tags -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>كتاب الهندسية الاجتماعية و الاستخبارات مفتوحة المصدر.pdf — TH3HUBRIS</title>
+  <meta name="title" content="كتاب الهندسية الاجتماعية و الاستخبارات مفتوحة المصدر.pdf — TH3HUBRIS">
+  <meta name="description" content="Social Engineering and Open Source Intelligence technical manual by TH3HUBRIS.">
+  <meta name="author" content="TH3HUBRIS">
+  <meta name="theme-color" content="#16171d">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://www.th3hubris.com/social-engineering-osint">
+  <meta property="og:title" content="كتاب الهندسية الاجتماعية و الاستخبارات مفتوحة المصدر.pdf — TH3HUBRIS">
+  <meta property="og:description" content="Technical research paper and practical manual by TH3HUBRIS.">
+  <meta property="og:image" content="https://www.th3hubris.com/profile.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="alternate icon" type="image/png" href="profile.png">
+
+  <!-- Google Fonts: JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Mozilla PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <link rel="stylesheet" href="style.css?v=2026.10">
+</head>
+<body>
+
+  <div class="layout-wrapper">
+    <main class="view-container active-view">
+
+      <!-- Top Terminal Prompt Line with Home Button -->
+      <div class="terminal-prompt-row doc-prompt-row">
+        <div class="prompt-text-group">
+          <span class="p-arrow">&gt;</span>
+          <span class="p-dollar">$</span>
+          <span class="p-command">cat /th3hubris/social_engineering_osint.md</span>
+          <span class="p-cursor">|</span>
+        </div>
+        <a href="/" class="btn-terminal-home" style="text-decoration: none;">Home</a>
+      </div>
+
+      <!-- Publication Header Card -->
+      <div class="doc-header-card">
+        <div class="doc-header-left">
+          <h1 class="doc-headline">
+            كتاب الهندسية الاجتماعية و الاستخبارات مفتوحة المصدر.pdf
+          </h1>
+          <p class="doc-subhead">
+            Social Engineering &amp; Open Source Intelligence // Practical Technical Guide
+          </p>
+        </div>
+
+        <div class="doc-header-right">
+          <img src="profile.png" alt="TH3HUBRIS" class="doc-avatar-img">
+          <span class="doc-avatar-caption">TH3HUBRIS</span>
+        </div>
+      </div>
+
+      <!-- Controls & Download Bar -->
+      <div class="doc-actions-strip">
+        <div class="strip-pagination">
+          <button type="button" class="btn-strip" id="prevPageBtn">
+            <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z"/></svg>
+            <span>Prev</span>
+          </button>
+          <span class="strip-page-info" id="pageNumberDisplay">Page 1 / 1</span>
+          <button type="button" class="btn-strip" id="nextPageBtn">
+            <span>Next</span>
+            <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z"/></svg>
+          </button>
+          <span class="strip-divider">|</span>
+          <button type="button" class="btn-strip" id="zoomOutBtn">-</button>
+          <span class="strip-zoom-info" id="zoomLevelDisplay">100%</span>
+          <button type="button" class="btn-strip" id="zoomInBtn">+</button>
+        </div>
+
+        <div class="strip-downloads">
+          <a id="downloadDocBtn" href="pdfs/Social_Engineering_And_OSINT.pdf" download="كتاب الهندسية الاجتماعية و الاستخبارات مفتوحة المصدر.pdf" class="btn-strip-download">
+            <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+            <span>Download PDF</span>
+          </a>
+          <a id="rawDocBtn" href="pdfs/Social_Engineering_And_OSINT.pdf" target="_blank" rel="noopener noreferrer" class="btn-strip-raw">↗ Raw Tab</a>
+        </div>
+      </div>
+
+      <!-- Social Share Bar -->
+      <div class="doc-share-strip">
+        <span class="share-prompt">Share:</span>
+        <button type="button" class="btn-share-tag" id="shareWhatsApp">WhatsApp</button>
+        <button type="button" class="btn-share-tag" id="shareLinkedIn">LinkedIn</button>
+        <button type="button" class="btn-share-tag" id="shareX">X (Twitter)</button>
+        <button type="button" class="btn-share-tag" id="shareTelegram">Telegram</button>
+        <button type="button" class="btn-share-tag" id="shareCopyLink">
+          <svg class="strip-svg" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor" aria-hidden="true"><path d="M760-200H320q-33 0-56.5-23.5T240-280v-560q0-33 23.5-56.5T320-920h280l240 240v400q0 33-23.5 56.5T760-200ZM560-640v-200H320v560h440v-360H560ZM160-40q-33 0-56.5-23.5T80-120v-560h80v560h440v80H160Zm160-800v200-200 560-560Z"/></svg>
+          <span>Copy Link</span>
+        </button>
+      </div>
+
+      <!-- Dashed Divider Line -->
+      <hr class="doc-dashed-divider">
+
+      <!-- PDF Canvas Reader Viewport -->
+      <div class="doc-canvas-viewport" id="canvasViewport">
+        <div class="canvas-centering-box">
+          <canvas id="pdfCanvas" data-pdf-url="pdfs/Social_Engineering_And_OSINT.pdf" data-doc-title="كتاب الهندسية الاجتماعية و الاستخبارات مفتوحة المصدر.pdf"></canvas>
+        </div>
+
+        <div id="loadingSpinner" class="doc-spinner-box">
+          <div class="terminal-spinner"></div>
+          <span>Loading document via PDF.js...</span>
+        </div>
+      </div>
+
+      <!-- Bottom Home Link -->
+      <div class="doc-bottom-nav">
+        <a href="/" class="btn-terminal-home" style="text-decoration: none;">&lt; Return to [ /th3hubris/readme.md ]</a>
+      </div>
+
+      <!-- Footer -->
+      <footer class="hx-footer" style="margin-top: 1.5rem;">
+        <div class="footer-contacts-list">
+          <a href="https://github.com/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">GITHUB</a>
+          <span class="f-sep">/</span>
+          <a href="https://x.com/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">X (TWITTER)</a>
+          <span class="f-sep">/</span>
+          <a href="https://instagram.com/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">INSTAGRAM</a>
+          <span class="f-sep">/</span>
+          <a href="https://linkedin.com/in/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">LINKEDIN</a>
+          <span class="f-sep">/</span>
+          <a href="https://wa.me/th3hubris" target="_blank" rel="noopener noreferrer" class="f-contact-link">WHATSAPP</a>
+        </div>
+        <div class="f-copyright">
+          TH3HUBRIS &copy; <span class="auto-year">2026</span> BY <abbr class="mcal-badge" title="Morocco Cyber &amp; AI Lab">MCAL</abbr> &bull; <a href="/about" class="link-item">About &amp; Ventures</a>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toastNotification" class="minimal-toast hidden" role="status" aria-live="polite">
+    <span class="toast-indicator">✓</span>
+    <span id="toastMessage">Done</span>
+  </div>
+
+  <script src="reader.js?v=2026.10"></script>
+  <script>
+    (function() {
+      var y = new Date().getFullYear();
+      var els = document.querySelectorAll('.auto-year');
+      for (var i = 0; i < els.length; i++) {
+        els[i].textContent = y;
+      }
+    })();
+  </script>
+</body>
+</html>
