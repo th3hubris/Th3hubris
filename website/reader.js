@@ -6,8 +6,9 @@
 (function () {
   'use strict';
 
-  const PDF_URL = 'pdfs/Network_Fundamentals_For_Cybersecurity.pdf';
-  const DOC_TITLE = 'أساسيات الشبكات للأمن السيبراني.pdf';
+  const canvasEl = document.getElementById('pdfCanvas');
+  const PDF_URL = (canvasEl && canvasEl.getAttribute('data-pdf-url')) || 'pdfs/Network_Fundamentals_For_Cybersecurity.pdf';
+  const DOC_TITLE = (canvasEl && canvasEl.getAttribute('data-doc-title')) || 'أساسيات الشبكات للأمن السيبراني.pdf';
 
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
