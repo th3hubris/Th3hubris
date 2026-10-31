@@ -1,0 +1,132 @@
+# robots.txt for th3hubris.com
+# Course landing page (/courses) is hidden from standard web search crawlers
+# but explicitly allowed for AI search bots and LLM agents.
+
+# -----------------------------------------------------------------------------
+# 1. ALLOW AI Bots & LLM Agents
+# -----------------------------------------------------------------------------
+User-agent: GPTBot
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: Claude-Web
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: Google-Extended
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: Amazonbot
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: Bytespider
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: CCBot
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: cohere-ai
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+User-agent: Diffbot
+Allow: /courses
+Allow: /courses.html
+Allow: /
+
+# -----------------------------------------------------------------------------
+# 2. DISALLOW Standard Search Engine Web Crawlers for /courses
+# -----------------------------------------------------------------------------
+User-agent: Googlebot
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: Googlebot-Image
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: bingbot
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: msnbot
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: Slurp
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: DuckDuckBot
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: Baiduspider
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: Yandex
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+User-agent: Sogou
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
+
+# -----------------------------------------------------------------------------
+# 3. Default Rule for all other bots
+# -----------------------------------------------------------------------------
+User-agent: *
+Disallow: /courses
+Disallow: /courses.html
+Allow: /
