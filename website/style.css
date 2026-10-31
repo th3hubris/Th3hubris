@@ -973,6 +973,44 @@ html, body {
   flex-shrink: 0;
 }
 
+/* Course Objective / Goal Card */
+.course-goal-card {
+  width: 100%;
+  max-width: 580px;
+  margin: 0 auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.4rem 1.4rem 1.6rem;
+  direction: rtl;
+  font-family: 'Cairo', sans-serif;
+  box-sizing: border-box;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.course-goal-header {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.goal-heading {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-white);
+  font-family: 'Cairo', sans-serif;
+  margin: 0;
+}
+
+.goal-text {
+  font-size: 0.96rem;
+  color: var(--text-primary);
+  line-height: 1.85;
+  text-align: justify;
+  margin: 0;
+  font-weight: 500;
+}
+
 /* Mobile Media Queries */
 @media (max-width: 600px) {
   .layout-wrapper {
