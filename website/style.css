@@ -1011,6 +1011,45 @@ html, body {
   font-weight: 500;
 }
 
+/* ==============================================================================
+   BLOGGING PAGE (th3hubris.com/blogging) — Noto Sans Arabic
+   ============================================================================== */
+.font-noto,
+.blogging-page,
+.blogging-page .course-main-title,
+.blogging-page .course-meta-text,
+.blogging-page .curriculum-heading,
+.blogging-page .curriculum-subheading,
+.blogging-page .course-topics-list li,
+.blogging-page .goal-heading,
+.blogging-page .goal-text,
+.blogging-page .course-price-label,
+.blogging-page .price-currency,
+.blogging-page .course-cta-btn {
+  font-family: 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-optical-sizing: auto;
+}
+
+.highlight-idea-box {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px dashed rgba(16, 185, 129, 0.35);
+  border-radius: 4px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  color: var(--text-white);
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+.highlight-idea-box .idea-star {
+  color: #10b981;
+  font-weight: 800;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
 /* Mobile Media Queries */
 @media (max-width: 600px) {
   .layout-wrapper {
