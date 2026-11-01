@@ -59,12 +59,15 @@ except ImportError:
 # GLOBAL CONSTANTS & PATH DEFINITIONS
 # ==============================================================================
 TOOL_NAME = "Th3hubris"
-VERSION = "3.2.0-kali2026"
+VERSION = "3.3.0-kali2026"
 TAGLINE = "We Build Shadow Soldiers - Ultimate OPSEC & Anonymity Suite"
 
-STATE_DIR = Path("/var/run/th3hubris")
-STATE_FILE = STATE_DIR / "state.json"
-BACKUP_DIR = Path("/etc/th3hubris/backups")
+CONFIG_DIR = Path("/etc/th3hubris")
+PERSISTENT_STATE_DIR = Path("/var/lib/th3hubris")
+STATE_FILE = PERSISTENT_STATE_DIR / "state.json"
+BACKUP_DIR = CONFIG_DIR / "backups"
+
+RUN_DIR = Path("/var/run/th3hubris")
 
 PROXYCHAINS4_CONF = Path("/etc/proxychains4.conf")
 PROXYCHAINS_LEGACY_CONF = Path("/etc/proxychains.conf")
@@ -77,12 +80,12 @@ TOR_SOCKS_PORT = 9050
 TOR_TRANS_PORT = 9040
 TOR_DNS_PORT = 9053  # Dedicated port avoiding mDNS / kdeconnectd collision on 5353
 
-OPENVPN_PID_FILE = STATE_DIR / "openvpn.pid"
-OPENVPN_CONFIG_FILE = STATE_DIR / "active_tunnel.ovpn"
-OPENVPN_AUTH_FILE = STATE_DIR / "vpn_credentials.txt"
-OPENVPN_LOG_FILE = STATE_DIR / "openvpn.log"
-IPTABLES_BACKUP_V4 = STATE_DIR / "iptables.v4.bak"
-IPTABLES_BACKUP_V6 = STATE_DIR / "iptables.v6.bak"
+OPENVPN_PID_FILE = RUN_DIR / "openvpn.pid"
+OPENVPN_CONFIG_FILE = RUN_DIR / "active_tunnel.ovpn"
+OPENVPN_AUTH_FILE = RUN_DIR / "vpn_credentials.txt"
+OPENVPN_LOG_FILE = RUN_DIR / "openvpn.log"
+IPTABLES_BACKUP_V4 = RUN_DIR / "iptables.v4.bak"
+IPTABLES_BACKUP_V6 = RUN_DIR / "iptables.v6.bak"
 
 VPN_GATE_API_URLS = [
     "http://www.vpngate.net/api/iphone/",
@@ -199,14 +202,21 @@ class StateManager:
     """Persists dynamic runtime status to allow safe recovery and clean shutdowns."""
 
     def __init__(self) -> None:
-        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        PERSISTENT_STATE_DIR.mkdir(parents=True, exist_ok=True)
         BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        RUN_DIR.mkdir(parents=True, exist_ok=True)
 
     def load(self) -> AnonymityState:
-        if not STATE_FILE.exists():
+        target_file = STATE_FILE
+        legacy_file = RUN_DIR / "state.json"
+        if not target_file.exists() and legacy_file.exists():
+            target_file = legacy_file
+
+        if not target_file.exists():
             return AnonymityState()
         try:
-            with open(STATE_FILE, "r", encoding="utf-8") as f:
+            with open(target_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data.get("resolv_backup"), str):
                     data["resolv_backup"] = {"resolv_backup": data["resolv_backup"]}
@@ -224,11 +234,12 @@ class StateManager:
             Logger.error(f"Failed to persist state: {e}")
 
     def clear(self) -> None:
-        if STATE_FILE.exists():
-            try:
-                STATE_FILE.unlink()
-            except OSError as e:
-                Logger.warn(f"Failed to unlink state file: {e}")
+        for f in (STATE_FILE, RUN_DIR / "state.json"):
+            if f.exists():
+                try:
+                    f.unlink()
+                except OSError:
+                    pass
 
 
 # ==============================================================================
@@ -365,19 +376,27 @@ class MacSpoofer:
         return saved_macs
 
     @classmethod
-    def restore_all(cls, original_macs: Dict[str, str]) -> None:
-        for iface, orig_mac in original_macs.items():
-            Logger.info(f"Reverting MAC address on interface {iface} to {orig_mac}...")
-            subprocess.run(["ip", "link", "set", "dev", iface, "down"], capture_output=True, text=True)
-            res = subprocess.run(["macchanger", "-p", iface], capture_output=True, text=True)
-            if res.returncode != 0:
-                subprocess.run(
-                    ["ip", "link", "set", "dev", iface, "address", orig_mac],
-                    capture_output=True,
-                    text=True,
-                )
-            subprocess.run(["ip", "link", "set", "dev", iface, "up"], capture_output=True, text=True)
-            Logger.success(f"Interface {iface} restored to permanent hardware MAC.")
+    def restore_all(cls, original_macs: Optional[Dict[str, str]] = None) -> None:
+        if original_macs:
+            for iface, orig_mac in original_macs.items():
+                Logger.info(f"Reverting MAC address on interface {iface} to {orig_mac}...")
+                subprocess.run(["ip", "link", "set", "dev", iface, "down"], capture_output=True, text=True)
+                res = subprocess.run(["macchanger", "-p", iface], capture_output=True, text=True)
+                if res.returncode != 0:
+                    subprocess.run(
+                        ["ip", "link", "set", "dev", iface, "address", orig_mac],
+                        capture_output=True,
+                        text=True,
+                    )
+                subprocess.run(["ip", "link", "set", "dev", iface, "up"], capture_output=True, text=True)
+                subprocess.run(["nmcli", "device", "reapply", iface], capture_output=True, text=True)
+                Logger.success(f"Interface {iface} restored to permanent hardware MAC.")
+        else:
+            for iface in cls.get_interfaces():
+                subprocess.run(["ip", "link", "set", "dev", iface, "down"], capture_output=True, text=True)
+                subprocess.run(["macchanger", "-p", iface], capture_output=True, text=True)
+                subprocess.run(["ip", "link", "set", "dev", iface, "up"], capture_output=True, text=True)
+                subprocess.run(["nmcli", "device", "reapply", iface], capture_output=True, text=True)
 
 
 # ==============================================================================
@@ -434,23 +453,34 @@ class FirefoxPolicyManager:
         return backups
 
     @classmethod
-    def restore_policy(cls, backups: List[str]) -> None:
-        if not backups:
-            return
+    def restore_policy(cls, backups: Optional[List[str]] = None) -> None:
         Logger.info("Restoring original Firefox enterprise policies...")
-        for entry in backups:
-            try:
-                target_str, backup_str = entry.split("::", 1)
-                target = Path(target_str)
-                if backup_str == "NEW":
-                    target.unlink(missing_ok=True)
-                else:
-                    backup = Path(backup_str)
-                    if backup.exists():
-                        shutil.copy2(backup, target)
-                        backup.unlink(missing_ok=True)
-            except Exception as e:
-                Logger.warn(f"Failed to restore Firefox policy {entry}: {e}")
+        if backups:
+            for entry in backups:
+                try:
+                    target_str, backup_str = entry.split("::", 1)
+                    target = Path(target_str)
+                    if backup_str == "NEW":
+                        target.unlink(missing_ok=True)
+                    else:
+                        backup = Path(backup_str)
+                        if backup.exists():
+                            shutil.copy2(backup, target)
+                            backup.unlink(missing_ok=True)
+                except Exception as e:
+                    Logger.warn(f"Failed to restore Firefox policy {entry}: {e}")
+
+        # Unconditional sweep across all policy directories to ensure no orphaned DoH blocks remain
+        for p_dir in cls.POLICY_DIRS:
+            target = p_dir / "policies.json"
+            if target.exists():
+                try:
+                    content = target.read_text(encoding="utf-8", errors="ignore")
+                    if "DNSOverHTTPS" in content:
+                        target.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
         Logger.success("Firefox enterprise policies normalized.")
 
     @classmethod
@@ -526,7 +556,7 @@ class DnsManager:
             except OSError as e:
                 Logger.warn(f"Could not configure NetworkManager conf: {e}")
 
-        # 2. Backup /etc/resolv.conf
+        # 2. Backup /etc/resolv.conf (Ensuring we never backup an already-poisoned 127.0.0.1)
         if RESOLV_CONF.exists() or RESOLV_CONF.is_symlink():
             subprocess.run(["chattr", "-i", str(RESOLV_CONF)], capture_output=True, text=True)
 
@@ -538,11 +568,24 @@ class DnsManager:
                     pass
 
             backup_path = BACKUP_DIR / "resolv.conf.th3hubris.bak"
-            try:
-                shutil.copy2(RESOLV_CONF, backup_path, follow_symlinks=False)
-                backup_info["resolv_backup"] = str(backup_path)
-            except OSError as e:
-                Logger.warn(f"Failed to backup {RESOLV_CONF}: {e}")
+            is_clean = True
+            if RESOLV_CONF.exists() and not RESOLV_CONF.is_symlink():
+                try:
+                    text = RESOLV_CONF.read_text(encoding="utf-8", errors="ignore")
+                    if "127.0.0.1" in text or "Th3hubris" in text:
+                        is_clean = False
+                except Exception:
+                    pass
+
+            if is_clean:
+                try:
+                    shutil.copy2(RESOLV_CONF, backup_path, follow_symlinks=False)
+                    backup_info["resolv_backup"] = str(backup_path)
+                except OSError as e:
+                    Logger.warn(f"Failed to backup {RESOLV_CONF}: {e}")
+            else:
+                if backup_path.exists():
+                    backup_info["resolv_backup"] = str(backup_path)
 
             if RESOLV_CONF.is_symlink():
                 try:
@@ -567,40 +610,74 @@ class DnsManager:
         return backup_info
 
     @classmethod
-    def restore(cls, backup_info: Optional[Dict[str, Any]]) -> None:
-        if not backup_info:
-            return
-
+    def restore(cls, backup_info: Optional[Dict[str, Any]] = None) -> None:
         Logger.info("Releasing immutable lock and restoring original DNS subsystem...")
         subprocess.run(["chattr", "-i", str(RESOLV_CONF)], capture_output=True, text=True)
 
         # 1. Restore NetworkManager configuration
-        if backup_info.get("nm_managed") or NM_OVERRIDE_CONF.exists():
+        if NM_OVERRIDE_CONF.exists():
             NM_OVERRIDE_CONF.unlink(missing_ok=True)
-            subprocess.run(["systemctl", "reload", "NetworkManager"], capture_output=True, text=True)
-            Logger.info("NetworkManager DNS management restored.")
+            Logger.info("Removed NetworkManager DNS override (dns=none).")
 
-        # 2. Restore /etc/resolv.conf
-        resolv_backup = backup_info.get("resolv_backup")
-        is_symlink = backup_info.get("is_symlink", False)
-        symlink_target = backup_info.get("symlink_target")
+        # 2. Restore /etc/resolv.conf from clean backup or runtime link
+        resolv_backup = backup_info.get("resolv_backup") if backup_info else None
+        is_symlink = backup_info.get("is_symlink", False) if backup_info else False
+        symlink_target = backup_info.get("symlink_target") if backup_info else None
 
+        default_backup_path = BACKUP_DIR / "resolv.conf.th3hubris.bak"
+        if not resolv_backup and default_backup_path.exists():
+            resolv_backup = str(default_backup_path)
+
+        restored_clean = False
         try:
-            if is_symlink and symlink_target:
+            if is_symlink and symlink_target and Path(symlink_target).exists():
                 RESOLV_CONF.unlink(missing_ok=True)
                 RESOLV_CONF.symlink_to(symlink_target)
-                if resolv_backup:
-                    Path(resolv_backup).unlink(missing_ok=True)
-                Logger.success("Restored /etc/resolv.conf symlink.")
+                restored_clean = True
+                Logger.success(f"Restored /etc/resolv.conf symlink to {symlink_target}.")
             elif resolv_backup and Path(resolv_backup).exists():
-                RESOLV_CONF.unlink(missing_ok=True)
-                shutil.copy2(resolv_backup, RESOLV_CONF)
+                backup_content = Path(resolv_backup).read_text(encoding="utf-8", errors="ignore")
+                if "127.0.0.1" not in backup_content and "nameserver" in backup_content:
+                    RESOLV_CONF.unlink(missing_ok=True)
+                    shutil.copy2(resolv_backup, RESOLV_CONF)
+                    restored_clean = True
+                    Logger.success("Original /etc/resolv.conf restored from clean backup.")
                 Path(resolv_backup).unlink(missing_ok=True)
-                Logger.success("Original /etc/resolv.conf restored.")
-            else:
-                subprocess.run(["systemctl", "restart", "NetworkManager"], capture_output=True, text=True)
         except OSError as e:
-            Logger.error(f"Failed to restore resolv.conf: {e}")
+            Logger.warn(f"Failed to restore resolv.conf from backup: {e}")
+
+        # 3. Fallback: If not restored cleanly or resolv.conf points to 127.0.0.1
+        current_text = ""
+        if RESOLV_CONF.exists() and not RESOLV_CONF.is_symlink():
+            try:
+                current_text = RESOLV_CONF.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                pass
+
+        if not restored_clean or "127.0.0.1" in current_text or not RESOLV_CONF.exists():
+            nm_resolv = Path("/run/NetworkManager/resolv.conf")
+            if nm_resolv.exists() and "nameserver" in nm_resolv.read_text(encoding="utf-8", errors="ignore"):
+                RESOLV_CONF.unlink(missing_ok=True)
+                RESOLV_CONF.symlink_to(nm_resolv)
+                Logger.info("Linked /etc/resolv.conf to NetworkManager runtime resolver.")
+            else:
+                clean_dns = (
+                    "# Restored by Th3hubris Network Recovery Engine\n"
+                    "nameserver 1.1.1.1\n"
+                    "nameserver 8.8.8.8\n"
+                    "nameserver 9.9.9.9\n"
+                    "options edns0 trust-ad\n"
+                )
+                RESOLV_CONF.unlink(missing_ok=True)
+                RESOLV_CONF.write_text(clean_dns, encoding="utf-8")
+                Logger.success("Applied standard reliable DNS resolvers (1.1.1.1, 8.8.8.8, 9.9.9.9).")
+
+        # 4. Trigger NetworkManager to refresh connection & DHCP
+        subprocess.run(["systemctl", "restart", "NetworkManager"], capture_output=True, text=True)
+        subprocess.run(["nmcli", "networking", "off"], capture_output=True, text=True)
+        time.sleep(0.5)
+        subprocess.run(["nmcli", "networking", "on"], capture_output=True, text=True)
+        Logger.info("NetworkManager restarted and DHCP networking refreshed.")
 
 
 # ==============================================================================
@@ -704,18 +781,18 @@ class ProxyChainsManager:
             return None
 
     @classmethod
-    def restore(cls, backup_path: Optional[str]) -> None:
-        if not backup_path or not Path(backup_path).exists():
-            return
-
+    def restore(cls, backup_path: Optional[str] = None) -> None:
         target = cls.get_config_path() or PROXYCHAINS4_CONF
-        Logger.info(f"Restoring original ProxyChains configuration from {backup_path}...")
-        try:
-            shutil.copy2(backup_path, target)
-            Path(backup_path).unlink(missing_ok=True)
-            Logger.success("Original ProxyChains configuration restored.")
-        except OSError as e:
-            Logger.error(f"Failed to restore proxychains config: {e}")
+        candidate_backup = backup_path or str(BACKUP_DIR / f"{target.name}.th3hubris.bak")
+
+        if Path(candidate_backup).exists():
+            Logger.info(f"Restoring original ProxyChains configuration from {candidate_backup}...")
+            try:
+                shutil.copy2(candidate_backup, target)
+                Path(candidate_backup).unlink(missing_ok=True)
+                Logger.success("Original ProxyChains configuration restored.")
+            except OSError as e:
+                Logger.warn(f"Failed to restore proxychains config: {e}")
 
 
 # ==============================================================================
@@ -909,11 +986,12 @@ class TorManager:
         return True
 
     @classmethod
-    def stop_tor_if_started(cls, was_running_initially: bool) -> None:
+    def stop_tor_if_started(cls, was_running_initially: bool = False) -> None:
         if not was_running_initially:
             Logger.info("Stopping Tor daemon started by Th3hubris...")
             subprocess.run(["systemctl", "stop", "tor@default"], capture_output=True, text=True)
             subprocess.run(["systemctl", "stop", "tor"], capture_output=True, text=True)
+            subprocess.run(["pkill", "-9", "-f", "/usr/bin/tor"], capture_output=True, text=True)
             Logger.success("Tor daemon stopped.")
 
 
@@ -1303,29 +1381,31 @@ class KillSwitchManager:
     @classmethod
     def disable(cls) -> None:
         Logger.info("Disarming Linux Kernel Kill-Switch & Transparent Proxy...")
-        # Remove NAT chain
-        subprocess.run(["iptables", "-t", "nat", "-D", "OUTPUT", "-j", cls.NAT_CHAIN], capture_output=True, text=True)
+
+        # Unlink all instances of custom NAT chain from OUTPUT
+        while subprocess.run(["iptables", "-t", "nat", "-D", "OUTPUT", "-j", cls.NAT_CHAIN], capture_output=True).returncode == 0:
+            pass
         subprocess.run(["iptables", "-t", "nat", "-F", cls.NAT_CHAIN], capture_output=True, text=True)
         subprocess.run(["iptables", "-t", "nat", "-X", cls.NAT_CHAIN], capture_output=True, text=True)
 
-        # Remove Filter chain
-        subprocess.run(["iptables", "-D", "OUTPUT", "-j", cls.CHAIN_NAME], capture_output=True, text=True)
+        # Unlink all instances of custom Filter chain from OUTPUT
+        while subprocess.run(["iptables", "-D", "OUTPUT", "-j", cls.CHAIN_NAME], capture_output=True).returncode == 0:
+            pass
         subprocess.run(["iptables", "-F", cls.CHAIN_NAME], capture_output=True, text=True)
         subprocess.run(["iptables", "-X", cls.CHAIN_NAME], capture_output=True, text=True)
 
-        # Restore default policies
+        # Restore default policies to ACCEPT across all chains
+        subprocess.run(["iptables", "-P", "INPUT", "ACCEPT"], capture_output=True, text=True)
+        subprocess.run(["iptables", "-P", "FORWARD", "ACCEPT"], capture_output=True, text=True)
         subprocess.run(["iptables", "-P", "OUTPUT", "ACCEPT"], capture_output=True, text=True)
-        subprocess.run(["ip6tables", "-P", "OUTPUT", "ACCEPT"], capture_output=True, text=True)
+
         subprocess.run(["ip6tables", "-P", "INPUT", "ACCEPT"], capture_output=True, text=True)
         subprocess.run(["ip6tables", "-P", "FORWARD", "ACCEPT"], capture_output=True, text=True)
+        subprocess.run(["ip6tables", "-P", "OUTPUT", "ACCEPT"], capture_output=True, text=True)
 
-        # Restore previous backups if present
-        if IPTABLES_BACKUP_V4.exists():
-            subprocess.run(f"iptables-restore < {IPTABLES_BACKUP_V4}", shell=True, capture_output=True, text=True)
-            IPTABLES_BACKUP_V4.unlink(missing_ok=True)
-        if IPTABLES_BACKUP_V6.exists():
-            subprocess.run(f"ip6tables-restore < {IPTABLES_BACKUP_V6}", shell=True, capture_output=True, text=True)
-            IPTABLES_BACKUP_V6.unlink(missing_ok=True)
+        # Scrub persistent rule traps
+        IPTABLES_BACKUP_V4.unlink(missing_ok=True)
+        IPTABLES_BACKUP_V6.unlink(missing_ok=True)
 
         Logger.success("Firewall rules normalized. Kill-Switch disarmed.")
 
@@ -1526,45 +1606,89 @@ class Th3hubrisOrchestrator:
             Logger.warn("Firefox is currently running. For transparent DNS rules to take immediate effect, restart Firefox:")
             print(f"  {TermColors.BOLD}{TermColors.CYAN}killall firefox-esr firefox; sudo th3hubris --browser{TermColors.RESET}\n")
 
-    def stop(self) -> None:
-        Logger.banner()
-        SystemValidator.enforce_root()
-        Logger.opsec("Decommissioning Anonymity Suite and restoring native network state...")
+    def repair_network(self, silent: bool = False) -> None:
+        """Unconditionally repairs DNS, restores NetworkManager, and resets all locks."""
+        if not silent:
+            Logger.banner()
+            SystemValidator.enforce_root()
+            Logger.opsec("Executing Deep Network Forensic Recovery & Zero-Lock Restoration...")
 
-        # 1. Disarm Kernel Kill-Switch & NAT chains
+        # 1. Disarm Kernel Kill-Switch & Flush NAT / Filter tables
         KillSwitchManager.disable()
         self.state.killswitch_active = False
 
-        # 2. Terminate VPN Tunnel
-        if self.state.openvpn_pid or OPENVPN_PID_FILE.exists():
-            VpnManager.stop_vpn(self.state.openvpn_pid)
-            self.state.openvpn_pid = None
-            self.state.vpn_server_ip = None
+        # 2. Terminate any OpenVPN daemons
+        VpnManager.stop_vpn(self.state.openvpn_pid)
+        self.state.openvpn_pid = None
+        self.state.vpn_server_ip = None
 
-        # 3. Restore Firefox Enterprise Policies
-        if self.state.firefox_policy_backups:
-            FirefoxPolicyManager.restore_policy(self.state.firefox_policy_backups)
-            self.state.firefox_policy_backups = []
+        # 3. Scrub Firefox Enterprise Policies across all distributions
+        FirefoxPolicyManager.restore_policy(self.state.firefox_policy_backups)
+        self.state.firefox_policy_backups = []
 
-        # 4. Restore DNS Configuration & NetworkManager
+        # 4. Deep Forensic DNS & NetworkManager Restoration
         DnsManager.restore(self.state.resolv_backup)
         self.state.resolv_backup = None
 
-        # 5. Restore ProxyChains Configuration
+        # 5. Restore ProxyChains4 configuration
         ProxyChainsManager.restore(self.state.proxychains_backup)
         self.state.proxychains_backup = None
 
-        # 6. Restore Hardware MAC Addresses
-        if self.state.original_macs:
-            MacSpoofer.restore_all(self.state.original_macs)
-            self.state.original_macs = {}
+        # 6. Restore Physical Network Hardware MAC addresses
+        MacSpoofer.restore_all(self.state.original_macs)
+        self.state.original_macs = {}
 
-        # 7. Stop Tor if we started it
+        # 7. Stop Tor daemon if started by Th3hubris
         TorManager.stop_tor_if_started(self.state.tor_was_running)
 
+        # 8. Clear Persistent State
         self.state.is_active = False
         self.state_mgr.clear()
-        Logger.success("System completely restored to original operational baseline. Clean exit.")
+
+        # 9. Verify Native Connectivity & Public IP
+        if not silent:
+            Logger.info("Auditing restored native Internet connectivity & DNS resolution...")
+            time.sleep(1.0)
+            native_net = NetworkAuditor.get_public_ip(via_tor_socks=False)
+            if native_net.get("ip") and native_net.get("ip") != "Offline / Unreachable":
+                Logger.success(
+                    f"[bold green]NATIVE INTERNET RESTORED ONLINE:[/bold green] "
+                    f"Public IP: [bold cyan]{native_net.get('ip')}[/bold cyan] ({native_net.get('country')} - {native_net.get('org')})"
+                )
+            else:
+                time.sleep(2.0)
+                native_net = NetworkAuditor.get_public_ip(via_tor_socks=False)
+                if native_net.get("ip") and native_net.get("ip") != "Offline / Unreachable":
+                    Logger.success(
+                        f"[bold green]NATIVE INTERNET RESTORED ONLINE:[/bold green] "
+                        f"Public IP: [bold cyan]{native_net.get('ip')}[/bold cyan] ({native_net.get('country')})"
+                    )
+                else:
+                    Logger.warn("Network hardware reconnected. If DHCP is delayed in VM, run: sudo systemctl restart NetworkManager")
+
+            Logger.success("System completely normalized to pristine operational baseline. Clean exit.")
+
+    def stop(self) -> None:
+        self.repair_network(silent=False)
+
+    def boot_check(self) -> None:
+        """Silent early-boot sanity check called by th3hubris-boot-guard.service."""
+        needs_cleanup = False
+        if NM_OVERRIDE_CONF.exists():
+            needs_cleanup = True
+        if RESOLV_CONF.exists():
+            try:
+                res = subprocess.run(["lsattr", str(RESOLV_CONF)], capture_output=True, text=True)
+                if "i" in res.stdout:
+                    needs_cleanup = True
+                content = RESOLV_CONF.read_text(encoding="utf-8", errors="ignore")
+                if "127.0.0.1" in content or "Th3hubris" in content:
+                    needs_cleanup = True
+            except Exception:
+                pass
+
+        if needs_cleanup or self.state.is_active:
+            self.repair_network(silent=True)
 
     def rotate_identity(self) -> None:
         Logger.banner()
@@ -1623,6 +1747,8 @@ def main() -> None:
     action_group = parser.add_mutually_exclusive_group(required=True)
     action_group.add_argument("--start", action="store_true", help="Initiate complete automated anonymity chain")
     action_group.add_argument("--stop", action="store_true", help="Flush firewall rules and restore original configurations")
+    action_group.add_argument("--repair-network", "--fix-network", dest="repair_network", action="store_true", help="Unconditionally restore native DNS, NetworkManager, and repair internet connectivity")
+    action_group.add_argument("--boot-check", action="store_true", help=argparse.SUPPRESS)
     action_group.add_argument("--ghost-id", action="store_true", help="Instantly rotate Tor exit node / acquire new IP")
     action_group.add_argument("--status", action="store_true", help="Audit current OPSEC posture and IP visibility")
     action_group.add_argument("--shell", action="store_true", help="Spawn an anonymized sub-shell wrapped with proxychains4")
@@ -1640,6 +1766,10 @@ def main() -> None:
         orchestrator.start(no_vpn=args.no_vpn, custom_vpn=args.vpn_config)
     elif args.stop:
         orchestrator.stop()
+    elif args.repair_network:
+        orchestrator.repair_network()
+    elif args.boot_check:
+        orchestrator.boot_check()
     elif args.ghost_id:
         orchestrator.rotate_identity()
     elif args.status:

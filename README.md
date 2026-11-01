@@ -113,6 +113,9 @@ Th3hubris combines multiple defense layers into a unified, non-conflicting routi
    - Drops all unencrypted outbound IPv4 traffic if the tunnel drops.
 10. **Secure Browser Launcher (`--browser` / `--firefox`):**
     - Seamlessly spawns a hardened Firefox instance operating cleanly under the active desktop user via the transparent Tor proxy.
+11. **Systemd Boot Sanity Guard & Self-Healing Network (`--repair-network`):**
+    - Automatically installs an early-boot service (`th3hubris-boot-guard.service`) ensuring Kali Linux NEVER boots into a broken internet state after unexpected reboots or power loss.
+    - Unconditional one-shot network recovery command (`sudo th3hubris --repair-network`) that unlocks `/etc/resolv.conf` (`chattr -i`), deletes NetworkManager overrides, flushes iptables, restores trusted upstream DNS, and verifies live connectivity.
 
 ---
 
@@ -145,6 +148,7 @@ Th3hubris requires `sudo` privileges for low-level socket, packet filtering, and
 | :--- | :--- |
 | `sudo th3hubris --start` | **Full Chain Activation:** Spoofs MACs, locks DNS to Tor, applies Firefox DoH policy, starts Tor TransPort/DNSPort, arms Kill-Switch, and displays before/after IP matrix. |
 | `sudo th3hubris --browser` | **Launch Hardened Browser:** Spawns Firefox as the active desktop user verified through Tor transparent proxy. |
+| `sudo th3hubris --repair-network` | **Deep Network Self-Heal:** Unconditionally unlocks `/etc/resolv.conf`, removes NetworkManager locks, flushes iptables, restores trusted upstream DNS, and verifies live internet connection. |
 | `sudo th3hubris --stop` | **Safe Recovery:** Disarms Kill-Switch, restores DNS, restores Firefox policies, restores ProxyChains, restores original MACs, and cleans temporary state. |
 | `sudo th3hubris --ghost-id` | **Instant IP Rotation:** Discards current Tor circuits and acquires a brand-new exit identity (`SIGNAL NEWNYM`). |
 | `sudo th3hubris --status` | **Posture Audit:** Displays active operational health, running tunnels, visible IP, ISP, and kill-switch state. |

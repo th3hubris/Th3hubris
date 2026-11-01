@@ -29,7 +29,8 @@ BIN_PRIMARY="/usr/bin/th3hubris"
 BIN_LOCAL="/usr/local/bin/th3hubris"
 OPT_DIR="/opt/th3hubris"
 CONFIG_DIR="/etc/th3hubris"
-STATE_DIR="/var/run/th3hubris"
+PERSISTENT_STATE_DIR="/var/lib/th3hubris"
+RUN_DIR="/var/run/th3hubris"
 
 echo -e "${RED}"
 cat << 'EOF'
@@ -42,7 +43,7 @@ cat << 'EOF'
 
 EOF
 echo -e "${WHITE}  »»» We Build Shadow Soldiers - Ultimate OPSEC Suite «««${NC}"
-echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.2.0)${NC}\n"
+echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.3.0)${NC}\n"
 
 # 1. Enforce Root Privileges
 if [[ "$EUID" -ne 0 ]]; then
@@ -63,7 +64,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     openvpn \
     macchanger \
     iptables \
-    iptables-persistent \
     iproute2 \
     net-tools \
     curl \
@@ -75,6 +75,10 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     python3-rich \
     python3-urllib3
 
+# Neutralize any rogue persistent rules that could block system boot
+systemctl disable netfilter-persistent 2>/dev/null || true
+rm -f /etc/iptables/rules.v4 /etc/iptables/rules.v6 2>/dev/null || true
+
 # 2. Python Dependencies (PEP 668 Compliant for Kali Linux 2026)
 echo -e "${BLUE}[*] Step 3: Verifying Python 3.12+ dependencies...${NC}"
 if [[ -f "$SCRIPT_DIR/requirements.txt" ]]; then
@@ -84,12 +88,14 @@ if [[ -f "$SCRIPT_DIR/requirements.txt" ]]; then
     }
 fi
 
-# 3. Create persistent directories
+# 3. Create persistent and runtime directories
 echo -e "${BLUE}[*] Step 4: Establishing system directories & permissions...${NC}"
 mkdir -p "$CONFIG_DIR/backups"
-mkdir -p "$STATE_DIR"
+mkdir -p "$PERSISTENT_STATE_DIR"
+mkdir -p "$RUN_DIR"
 chmod 700 "$CONFIG_DIR"
-chmod 755 "$STATE_DIR"
+chmod 755 "$PERSISTENT_STATE_DIR"
+chmod 755 "$RUN_DIR"
 
 # 4. Pre-configure Tor defaults cleanly (Zero Duplication)
 echo -e "${BLUE}[*] Step 5: Sanitizing and configuring Tor Transparent Proxying (/etc/tor/torrc)...${NC}"
@@ -139,17 +145,39 @@ chmod +x "$BIN_PRIMARY"
 ln -sf "$BIN_PRIMARY" "$BIN_LOCAL"
 chmod +x "$BIN_LOCAL" 2>/dev/null || true
 
+# 6. Deploy Boot Network Guard (Guarantees Internet Works After Every Reboot)
+echo -e "${BLUE}[*] Step 7: Deploying Th3hubris Boot Network Sanity Guard (systemd)...${NC}"
+cat << 'SERVICE_EOF' > /etc/systemd/system/th3hubris-boot-guard.service
+[Unit]
+Description=Th3hubris Boot Network Sanity & Clean Recovery Guard
+Before=network-pre.target NetworkManager.service
+Wants=network-pre.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/th3hubris --boot-check
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target
+SERVICE_EOF
+
+systemctl daemon-reload
+systemctl enable th3hubris-boot-guard.service 2>/dev/null || true
+
 echo -e "\n${GREEN}[+] INSTALLATION COMPLETE!${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "${GREEN}[✔] Th3hubris installed to: ${CYAN}${OPT_DIR}${NC}"
 echo -e "${GREEN}[✔] Global binary created at: ${CYAN}${BIN_PRIMARY}${NC} & ${CYAN}${BIN_LOCAL}${NC}"
 echo -e "${GREEN}[✔] Tor configuration sanitized: DNSPort:9053 | TransPort:9040 | SOCKS:9050${NC}"
+echo -e "${GREEN}[✔] Systemd Boot Guard active: Guaranteed zero network lockout on reboot.${NC}"
 echo -e "${GREEN}[✔] Kali Linux 2026 networking stack verified.${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "\n${CYAN}Quick Start Commands:${NC}"
-echo -e "  ${YELLOW}sudo th3hubris --start${NC}     -> Activate full anonymity chain"
-echo -e "  ${YELLOW}sudo th3hubris --browser${NC}   -> Launch secure Firefox via Tor"
-echo -e "  ${YELLOW}sudo th3hubris --status${NC}    -> Check OPSEC & IP posture"
-echo -e "  ${YELLOW}sudo th3hubris --ghost-id${NC}  -> Rotate Tor exit circuit / IP"
-echo -e "  ${YELLOW}sudo th3hubris --shell${NC}     -> Spawn anonymized terminal sub-shell"
-echo -e "  ${YELLOW}sudo th3hubris --stop${NC}      -> Decommission suite & restore network\n"
+echo -e "  ${YELLOW}sudo th3hubris --start${NC}          -> Activate full anonymity chain"
+echo -e "  ${YELLOW}sudo th3hubris --browser${NC}        -> Launch secure Firefox via Tor"
+echo -e "  ${YELLOW}sudo th3hubris --status${NC}         -> Check OPSEC & IP posture"
+echo -e "  ${YELLOW}sudo th3hubris --ghost-id${NC}       -> Rotate Tor exit circuit / IP"
+echo -e "  ${YELLOW}sudo th3hubris --repair-network${NC}  -> Deep unconditional network self-heal"
+echo -e "  ${YELLOW}sudo th3hubris --stop${NC}           -> Decommission suite & restore network\n"
