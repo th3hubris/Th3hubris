@@ -147,12 +147,13 @@ Th3hubris requires `sudo` privileges for low-level socket, packet filtering, and
 
 | Command | Description |
 | :--- | :--- |
-| `sudo th3hubris --start` | **Full Chain Activation:** Spoofs MACs, locks DNS to Tor, applies Firefox DoH policy, starts Tor TransPort/DNSPort, arms Kill-Switch, and displays before/after IP matrix. |
+| `sudo th3hubris --start` | **Dual Armor Activation (Tor over OpenVPN):** Harvests/tests OpenVPN relays, encapsulates Tor circuits inside `tun0`, locks DNS to Tor, randomizes MACs, and arms Kill-Switch. |
+| `sudo th3hubris --vpn-only` | **Pure VPN Shield Mode:** Full system routing through OpenVPN (`tun0`) with KillSwitch. Target websites see the clean VPN Server IP directly (**Zero Tor Exit Node flag, No Google CAPTCHAs**). |
 | `sudo th3hubris --browser` | **Launch Hardened Browser:** Spawns Firefox as the active desktop user verified through Tor transparent proxy. |
-| `sudo th3hubris --repair-network` | **Deep Network Self-Heal:** Unconditionally unlocks `/etc/resolv.conf`, removes NetworkManager locks, flushes iptables, restores trusted upstream DNS, and verifies live internet connection. |
-| `sudo th3hubris --stop` | **Safe Recovery:** Disarms Kill-Switch, restores DNS, restores Firefox policies, restores ProxyChains, restores original MACs, and cleans temporary state. |
+| `sudo th3hubris --repair-network` | **Deep Network Self-Heal:** Unconditionally unlocks `/etc/resolv.conf`, removes NetworkManager locks, flushes iptables, restores trusted upstream DNS, and verifies live internet connection. (Alias: `sudo th3hubris-fix-network`). |
+| `sudo th3hubris --stop` | **Safe Recovery:** Disarms Kill-Switch, restores DNS without interface flapping, restores Firefox policies, restores ProxyChains, restores original MACs, and cleans temporary state. |
 | `sudo th3hubris --ghost-id` | **Instant IP Rotation:** Discards current Tor circuits and acquires a brand-new exit identity (`SIGNAL NEWNYM`). |
-| `sudo th3hubris --status` | **Posture Audit:** Displays active operational health, running tunnels, visible IP, ISP, and kill-switch state. |
+| `sudo th3hubris --status` | **Posture Audit:** Displays active operational health, running topology (Tor over VPN vs Pure VPN), visible IP, ISP, and kill-switch state. |
 | `sudo th3hubris --shell` | **Cloaked Sub-Shell:** Spawns an interactive bash terminal with all outbound traffic dynamically routed through ProxyChains. |
 | `sudo th3hubris --start --no-vpn` | **Tor-Only Mode:** Activates transparent Tor proxy, DNS lock, MAC spoofing, and Kill-Switch without OpenVPN chaining. |
 | `sudo th3hubris --start --vpn-config <path.ovpn>` | **Custom VPN Mode:** Uses a private or corporate `.ovpn` configuration file instead of dynamic public relays. |
@@ -172,24 +173,23 @@ Th3hubris requires `sudo` privileges for low-level socket, packet filtering, and
 
 ---
 
-## 🇸🇦 ملخص شامل ودليل الاستخدام باللغة العربية (الإصدار 3.0.0)
+## 🇸🇦 ملخص شامل ودليل الاستخدام باللغة العربية (الإصدار 3.5.0)
 
 ### ما هي أداة Th3hubris؟
 أداة **Th3hubris** هي جناح أمني وتكتيكي متكامل (All-in-One OPSEC Suite) تم تطويره وهندسته لخبراء الأمن السيبراني واختبار الاختراق على توزيعة **Kali Linux (إصدار 2026 Rolling)** باستخدام **Python 3.12+**. تقوم الأداة بأتمتة سلسلة التخفي وتأمين الاتصال بالكامل عبر **أمر واحد فقط** وفق أحدث معايير التوجيه الشفاف (Transparent Proxy) المعتمدة عالمياً في أدوات مثل `kalitorify` و `anonsurf`.
 
-### 🌟 أبرز التحديثات والمميزات في الإصدار 3.0.0:
-1. **التوجيه الشفاف لكامل النظام (Transparent Proxy):**
-   - توجيه كافة اتصالات الـ TCP تلقائياً عبر منفذ Tor TransPort `9040` دون الحاجة لضبط البروكسي يدوياً في المتصفحات أو البرامج.
-2. **حل مشكلة "Server Not Found" في متصفح Firefox:**
-   - تعطيل ميزة DNS-over-HTTPS (DoH) تلقائياً عبر سياسات موزيلا للمؤسسات (`/etc/firefox/policies/policies.json`) لمنع المتصفح من تجاوز نظام الـ DNS الآمن لـ Tor.
-3. **تأمين نظام أسماء النطاقات (Zero-Leak Tor DNS):**
-   - إعادة توجيه كافة استعلامات الـ DNS (المنفذ 53) إلى منفذ Tor DNSPort `5353` عبر جدار الحماية، مع تعطيل قدرة NetworkManager على الكتابة فوق `/etc/resolv.conf` وقفل الملف بخاصية `chattr +i`.
-4. **مفتاح القتل الصارم (Kernel Kill-Switch):**
-   - قواعد `iptables` محكمة تسقط أي حزم بيانات غير مشفرة أو حزم IPv6 بشكل كامل لمنع أي تسريب حقيقي للـ IP.
-5. **إطلاق آمن للمتصفح (`--browser`):**
-   - أمر مباشر لتشغيل متصفح Firefox بهوية المستخدم الحالية ليعمل مباشرة وبكل سلاسة عبر شبكة Tor الشفافة.
-6. **تغيير عنوان الماك (MAC Address Spoofing):**
-   - كشف وتغيير عناوين الماك لكافة كروت الشبكة النشطة تلقائياً لتفادي التعقب على الشبكات المحلية والافتراضية.
+### 🌟 أبرز التحديثات والمميزات في الإصدار 3.5.0:
+1. **خزنة خوادم VPN الاحتياطية (Offline Fallback Vault):**
+   - تزويد الأداة بخزنة داخلية تضم خوادم OpenVPN فائقة السرعة وعالية الموثوقية (اليابان، رومانيا، تايلاند، كوريا الجنوبية) تضمن اتصال الـ VPN بنسبة 100% حتى لو قامت شركات الاتصالات المزودة للخدمة (مثل اتصالات المغرب IAM) بحجب واجهات VPN Gate أو الروابط المباشرة.
+2. **وضع درع الـ VPN الخالص (`--vpn-only`):**
+   - توجيه كامل حركة النظام وتطبيقات كالي عبر نفق OpenVPN المشفر مع جدار ناري KillSwitch، بحيث يرى الموقع الهدف (مثل Google أو Cloudflare) عنوان IP الخادم الحقيقي للـ VPN مباشرة **دون أن يظهر له Tor Exit Node وبلا كابتشا أو حظر**!
+3. **توجيه Tor عبر OpenVPN تلقائياً وبأقصى تشفير (Tor over VPN):**
+   - حصر وتطويق مسارات Tor بالكامل عبر نفق `tun0` بموجب قواعد نواة لينكس (Kernel iptables)، بحيث لا يمكن لـ Tor الاتصال بالإنترنت إلا من خلال الـ VPN، مانعاً مزود الخدمة من معرفة اتصالك بشبكة Tor إطلاقاً.
+4. **حماية واستعادة فورية للإنترنت دون أي انقطاع:**
+   - خدمة نظام `th3hubris-boot-guard.service` تعمل مع بدء إقلاع كالي لإصلاح أي قفل متبقي تلقائياً.
+   - أمر الإصلاح الذاتي الفوري: `sudo th3hubris-fix-network` أو `sudo th3hubris --repair-network` الذي يعيد الإنترنت والـ DNS في ثانية واحدة دون أي تأخير.
+5. **التوجيه الشفاف لكامل أدوات كالي (Nmap, Curl, Python, Firefox):**
+   - حماية كامل النظام على مستوى النواة (Packet Filtering)، مما يحمي كافة أدوات الاستطلاع والهجوم السيبراني وليس المتصفح فقط.
 
 ### 📋 جدول أوامر التشغيل السريع:
 
@@ -200,19 +200,25 @@ sudo th3hubris --stop
 git pull
 sudo bash install.sh
 
-# 2. تشغيل منظومة التخفي الكاملة
+# 2. تشغيل منظومة الدرع الثنائي (Tor عبر OpenVPN)
 sudo th3hubris --start
 
-# 3. فتح متصفح Firefox الآمن وتصفح المواقع مباشرة
+# 3. تشغيل وضع الـ VPN الخالص (تخطي حظر Tor Exit Node وحل مشكلة كابتشا جوجل)
+sudo th3hubris --vpn-only
+
+# 4. فتح متصفح Firefox الآمن وتصفح المواقع مباشرة
 sudo th3hubris --browser
 
-# 4. تغيير هوية ومسار Tor فوراً (حصول على IP جديد)
+# 5. تغيير هوية ومسار Tor فوراً (حصول على IP جديد)
 sudo th3hubris --ghost-id
 
-# 5. فحص الحالة والـ IP الظاهر
+# 6. فحص الحالة والـ IP الظاهر ونوع المسار
 sudo th3hubris --status
 
-# 6. إيقاف الأداة واستعادة الوضع الافتراضي للشبكة
+# 7. إصلاح فوري وتلقائي للإنترنت في حال انقطاعه
+sudo th3hubris-fix-network
+
+# 8. إيقاف الأداة واستعادة الوضع الافتراضي للشبكة
 sudo th3hubris --stop
 ```
 

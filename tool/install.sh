@@ -43,7 +43,7 @@ cat << 'EOF'
 
 EOF
 echo -e "${WHITE}  »»» We Build Shadow Soldiers - Ultimate OPSEC Suite «««${NC}"
-echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.4.0)${NC}\n"
+echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.5.0)${NC}\n"
 
 # 1. Enforce Root Privileges
 if [[ "$EUID" -ne 0 ]]; then
@@ -145,6 +145,13 @@ chmod +x "$BIN_PRIMARY"
 ln -sf "$BIN_PRIMARY" "$BIN_LOCAL"
 chmod +x "$BIN_LOCAL" 2>/dev/null || true
 
+# Deploy one-touch network repair command
+cat << 'FIX_EOF' > /usr/bin/th3hubris-fix-network
+#!/usr/bin/env bash
+exec /usr/bin/th3hubris --repair-network "$@"
+FIX_EOF
+chmod +x /usr/bin/th3hubris-fix-network
+
 # 6. Deploy Boot Network Guard (Guarantees Internet Works After Every Reboot)
 echo -e "${BLUE}[*] Step 7: Deploying Th3hubris Boot Network Sanity Guard (systemd)...${NC}"
 cat << 'SERVICE_EOF' > /etc/systemd/system/th3hubris-boot-guard.service
@@ -170,12 +177,15 @@ echo -e "\n${GREEN}[+] INSTALLATION COMPLETE!${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "${GREEN}[✔] Th3hubris installed to: ${CYAN}${OPT_DIR}${NC}"
 echo -e "${GREEN}[✔] Global binary created at: ${CYAN}${BIN_PRIMARY}${NC} & ${CYAN}${BIN_LOCAL}${NC}"
+echo -e "${GREEN}[✔] Instant repair command: ${CYAN}/usr/bin/th3hubris-fix-network${NC}"
+echo -e "${GREEN}[✔] Offline Fallback Vault: ${CYAN}${OPT_DIR}/vpn_fallbacks.json (Armed)${NC}"
 echo -e "${GREEN}[✔] Tor configuration sanitized: DNSPort:9053 | TransPort:9040 | SOCKS:9050${NC}"
 echo -e "${GREEN}[✔] Systemd Boot Guard active: Guaranteed zero network lockout on reboot.${NC}"
 echo -e "${GREEN}[✔] Kali Linux 2026 networking stack verified.${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "\n${CYAN}Quick Start Commands:${NC}"
-echo -e "  ${YELLOW}sudo th3hubris --start${NC}          -> Activate full anonymity chain"
+echo -e "  ${YELLOW}sudo th3hubris --start${NC}          -> Full dual armor (Tor over OpenVPN)"
+echo -e "  ${YELLOW}sudo th3hubris --vpn-only${NC}       -> Pure VPN shield (bypasses Tor exit node & CAPTCHAs)"
 echo -e "  ${YELLOW}sudo th3hubris --browser${NC}        -> Launch secure Firefox via Tor"
 echo -e "  ${YELLOW}sudo th3hubris --status${NC}         -> Check OPSEC & IP posture"
 echo -e "  ${YELLOW}sudo th3hubris --ghost-id${NC}       -> Rotate Tor exit circuit / IP"
