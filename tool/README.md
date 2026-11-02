@@ -102,9 +102,10 @@ Th3hubris combines multiple defense layers into a unified, non-conflicting routi
 6. **Automated ProxyChains4 Reconfiguration:**
    - Automatically parses and backs up `/etc/proxychains4.conf`.
    - Enables `dynamic_chain`, disables `strict_chain` and `random_chain`, enforces `proxy_dns`, and configures `socks5 127.0.0.1 9050`.
-7. **Dynamic Free OpenVPN Integration:**
+7. **Dynamic Free OpenVPN Integration & Strict Tor-over-VPN Routing:**
    - Interacts directly with live academic VPN feeds (VPN Gate API) to parse top-rated, low-ping relay servers worldwide.
-   - Chained optionally before Tor for layered ISP concealment. Supports custom `.ovpn` files via `--vpn-config <path>`.
+   - Enforces genuine **Tor over VPN** nested onion routing (`redirect-gateway def1` on `tun0`): Tor guard relays only see the VPN server's IP, while your ISP only sees encrypted OpenVPN traffic.
+   - The Linux Kernel Kill-Switch strictly locks Tor daemon egress to `tun+` when VPN is active, dropping any direct egress attempts via `eth0`/`wlan0`. Supports custom `.ovpn` files via `--vpn-config <path>`.
 8. **Hardware MAC Address Cloaking:**
    - Discovers all active physical and wireless network adapters (e.g., `eth0`, `wlan0`, `enp*`, `wlp*`).
    - Automatically randomizes hardware MAC addresses with locally administered unicast identifiers (`02:xx:xx:xx:xx:xx`) and restores factory hardware addresses upon shutdown.

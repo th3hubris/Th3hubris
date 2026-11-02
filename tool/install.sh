@@ -43,7 +43,7 @@ cat << 'EOF'
 
 EOF
 echo -e "${WHITE}  »»» We Build Shadow Soldiers - Ultimate OPSEC Suite «««${NC}"
-echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.3.0)${NC}\n"
+echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.4.0)${NC}\n"
 
 # 1. Enforce Root Privileges
 if [[ "$EUID" -ne 0 ]]; then
