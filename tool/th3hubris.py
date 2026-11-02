@@ -59,7 +59,7 @@ except ImportError:
 # GLOBAL CONSTANTS & PATH DEFINITIONS
 # ==============================================================================
 TOOL_NAME = "Th3hubris"
-VERSION = "3.5.0-kali2026"
+VERSION = "3.6.0-kali2026"
 TAGLINE = "We Build Shadow Soldiers - Ultimate OPSEC & Anonymity Suite"
 
 CONFIG_DIR = Path("/etc/th3hubris")
@@ -284,6 +284,64 @@ class SystemValidator:
             Logger.info("Execute the automated installer to resolve all packages:")
             print(f"  {TermColors.BOLD}{TermColors.CYAN}sudo bash install.sh{TermColors.RESET}\n")
             sys.exit(1)
+
+
+# ==============================================================================
+# ROUTING & POLICY ROUTING HELPER (VPN-OVER-TOR LOOP PREVENTION)
+# ==============================================================================
+class RoutingHelper:
+    """Manages Linux policy routing tables and default gateway resolution."""
+
+    @classmethod
+    def get_default_gateway_and_iface(cls) -> Tuple[Optional[str], Optional[str]]:
+        res = subprocess.run(["ip", "-4", "route", "show", "default"], capture_output=True, text=True)
+        match = re.search(r"default\s+via\s+([0-9\.]+)\s+dev\s+([a-zA-Z0-9_-]+)", res.stdout)
+        if match:
+            return match.group(1), match.group(2)
+        match2 = re.search(r"default\s+dev\s+([a-zA-Z0-9_-]+)", res.stdout)
+        if match2:
+            return None, match2.group(1)
+        ifaces = MacSpoofer.get_interfaces()
+        return None, (ifaces[0] if ifaces else "eth0")
+
+    @classmethod
+    def setup_tor_policy_routing(cls, gw: Optional[str], iface: str, tor_uid: str) -> bool:
+        """Isolates Tor daemon traffic via physical interface table 100 to prevent routing loops."""
+        subprocess.run(["ip", "route", "flush", "table", "100"], capture_output=True, text=True)
+
+        # Copy link-scope connected routes for interface to table 100
+        res_link = subprocess.run(["ip", "-4", "route", "show", "dev", iface, "scope", "link"], capture_output=True, text=True)
+        for r_line in res_link.stdout.splitlines():
+            r = r_line.strip()
+            if r:
+                subprocess.run(f"ip route add {r} dev {iface} table 100", shell=True, capture_output=True)
+
+        if gw:
+            subprocess.run(["ip", "route", "add", "default", "via", gw, "dev", iface, "onlink", "table", "100"], capture_output=True, text=True)
+        else:
+            subprocess.run(["ip", "route", "add", "default", "dev", iface, "table", "100"], capture_output=True, text=True)
+
+        while subprocess.run(["ip", "rule", "del", "fwmark", "0x10", "table", "100"], capture_output=True).returncode == 0:
+            pass
+        subprocess.run(["ip", "rule", "add", "fwmark", "0x10", "table", "100"], capture_output=True, text=True)
+
+        subprocess.run(["iptables", "-t", "mangle", "-D", "OUTPUT", "-m", "owner", "--uid-owner", tor_uid, "-j", "MARK", "--set-mark", "0x10"], capture_output=True)
+        subprocess.run(["iptables", "-t", "mangle", "-A", "OUTPUT", "-m", "owner", "--uid-owner", tor_uid, "-j", "MARK", "--set-mark", "0x10"], capture_output=True, text=True)
+
+        # Ensure reverse path filtering does not drop policy-routed return traffic
+        subprocess.run(["sysctl", "-w", "net.ipv4.conf.all.rp_filter=2"], capture_output=True)
+        subprocess.run(["sysctl", "-w", f"net.ipv4.conf.{iface}.rp_filter=2"], capture_output=True)
+
+        Logger.info(f"Tor daemon policy routing armed (table 100 via [bold cyan]{iface}[/bold cyan], fwmark 0x10). Zero routing loop.")
+        return True
+
+    @classmethod
+    def teardown_tor_policy_routing(cls) -> None:
+        """Removes policy routing table 100 and cleans mangle rules."""
+        while subprocess.run(["ip", "rule", "del", "fwmark", "0x10", "table", "100"], capture_output=True).returncode == 0:
+            pass
+        subprocess.run(["ip", "route", "flush", "table", "100"], capture_output=True, text=True)
+        subprocess.run(["iptables", "-t", "mangle", "-F"], capture_output=True, text=True)
 
 
 # ==============================================================================
@@ -535,7 +593,7 @@ class DnsManager:
         return False
 
     @classmethod
-    def backup_and_lock(cls, vpn_only: bool = False) -> Dict[str, Any]:
+    def backup_and_lock(cls, vpn_exit: bool = True) -> Dict[str, Any]:
         backup_info: Dict[str, Any] = {
             "resolv_backup": None,
             "is_symlink": False,
@@ -543,7 +601,7 @@ class DnsManager:
             "nm_managed": False,
         }
 
-        mode_label = "Encrypted VPN Tunnel DNS" if vpn_only else "Tor Transparent DNSPort"
+        mode_label = "Encrypted VPN Tunnel DNS (1.1.1.1 / 9.9.9.9)" if vpn_exit else f"Tor Transparent DNSPort (127.0.0.1:{TOR_DNS_PORT})"
         Logger.opsec(f"Securing DNS subsystem ({mode_label}) against ISP leakage & NetworkManager overwrites...")
 
         # 1. Prevent NetworkManager from overwriting /etc/resolv.conf during active cloak
@@ -596,15 +654,16 @@ class DnsManager:
                     pass
 
         # 3. Write privacy DNS configuration
-        if vpn_only:
+        if vpn_exit:
             content = (
                 "# Generated by Th3hubris OPSEC Suite\n"
-                "# Encrypted OpenVPN Tunnel Resolvers (Zero Leak / No Tor Node)\n"
+                "# Encrypted OpenVPN Tunnel Resolvers (Zero Leak / VPN Exit Node)\n"
                 "nameserver 1.1.1.1\n"
                 "nameserver 9.9.9.9\n"
+                "nameserver 8.8.8.8\n"
                 "options edns0 trust-ad\n"
             )
-            success_msg = "DNS configuration locked to privacy resolvers (1.1.1.1 & 9.9.9.9 via tun0)."
+            success_msg = "DNS configuration locked to privacy resolvers (1.1.1.1, 9.9.9.9, 8.8.8.8 via tun0)."
         else:
             content = (
                 "# Generated by Th3hubris OPSEC Suite\n"
@@ -814,6 +873,14 @@ class ProxyChainsManager:
 # ==============================================================================
 class TorManager:
     """Manages local Tor onion routing, transparent proxying, and circuit health."""
+
+    @classmethod
+    def get_tor_uid(cls) -> Optional[str]:
+        for username in ("debian-tor", "tor"):
+            res = subprocess.run(["id", "-u", username], capture_output=True, text=True)
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout.strip()
+        return None
 
     @classmethod
     def is_service_active(cls) -> bool:
@@ -1129,31 +1196,55 @@ class VpnManager:
         return candidates
 
     @classmethod
-    def _test_and_launch_vpn(cls, ovpn_content: str, country: str, target_ip: str, timeout: int = 15) -> Tuple[Optional[int], Optional[str]]:
-        """Attempts to spawn an OpenVPN node and verifies tunnel interface within timeout (15s)."""
+    def _test_and_launch_vpn(
+        cls,
+        ovpn_content: str,
+        country: str,
+        target_ip: str,
+        timeout: int = 15,
+        socks_tor: bool = False,
+    ) -> Tuple[Optional[int], Optional[str]]:
+        """Attempts to spawn an OpenVPN node and verifies tunnel interface within timeout."""
         cls.stop_vpn()
 
         OPENVPN_AUTH_FILE.write_text("vpn\nvpn\n", encoding="utf-8")
         os.chmod(OPENVPN_AUTH_FILE, 0o600)
         OPENVPN_LOG_FILE.unlink(missing_ok=True)
 
-        # Strip any conflicting 'route-nopull' directives from profile to allow tunnel routing
+        # Strip any conflicting 'route-nopull' or 'socks-proxy' directives from profile
         sanitized_ovpn = []
         for line in ovpn_content.splitlines():
             stripped = line.strip().lower()
-            if stripped.startswith("route-nopull"):
+            if stripped.startswith("route-nopull") or stripped.startswith("socks-proxy"):
+                continue
+            if socks_tor and stripped.startswith("proto udp"):
+                sanitized_ovpn.append("proto tcp")
                 continue
             sanitized_ovpn.append(line)
 
-        injected = [
-            "\n# Generated by Th3hubris Automated Engine (Tor-over-VPN Routing)",
-            f"auth-user-pass {OPENVPN_AUTH_FILE}",
-            "script-security 2",
-            "redirect-gateway def1",
-            "connect-retry-max 1",
-            "hand-window 10",
-            "verb 1",
-        ]
+        if socks_tor:
+            injected = [
+                "\n# Generated by Th3hubris Automated Engine (VPN-over-Tor Egress Shield)",
+                f"auth-user-pass {OPENVPN_AUTH_FILE}",
+                "script-security 2",
+                "redirect-gateway def1",
+                "socks-proxy 127.0.0.1 9050",
+                "socks-proxy-retry",
+                "hand-window 30",
+                "connect-retry-max 2",
+                "verb 1",
+            ]
+        else:
+            injected = [
+                "\n# Generated by Th3hubris Automated Engine",
+                f"auth-user-pass {OPENVPN_AUTH_FILE}",
+                "script-security 2",
+                "redirect-gateway def1",
+                "connect-retry-max 1",
+                "hand-window 10",
+                "verb 1",
+            ]
+
         full_config = "\n".join(sanitized_ovpn) + "\n" + "\n".join(injected) + "\n"
         OPENVPN_CONFIG_FILE.write_text(full_config, encoding="utf-8")
 
@@ -1212,42 +1303,62 @@ class VpnManager:
         return pid, server_ip
 
     @classmethod
-    def start_vpn(cls, custom_config_path: Optional[str] = None, max_candidates: int = 5) -> Tuple[Optional[int], Optional[str]]:
-        """Orchestrates multi-candidate failover, giving each candidate up to 15s to establish."""
+    def start_vpn(
+        cls,
+        custom_config_path: Optional[str] = None,
+        max_candidates: int = 5,
+        socks_tor: bool = False,
+    ) -> Tuple[Optional[int], Optional[str]]:
+        """Orchestrates multi-candidate failover, giving each candidate up to timeout to establish."""
+        timeout = 25 if socks_tor else 15
         if custom_config_path:
             p = Path(custom_config_path)
             if p.exists():
                 Logger.info(f"Loading custom user OpenVPN profile: {p}")
-                return cls._test_and_launch_vpn(p.read_text(encoding="utf-8"), "Custom VPN", "127.0.0.1", timeout=15)
+                return cls._test_and_launch_vpn(p.read_text(encoding="utf-8"), "Custom VPN", "127.0.0.1", timeout=timeout, socks_tor=socks_tor)
             else:
                 Logger.error(f"Specified OpenVPN file does not exist: {p}")
                 return None, None
 
         candidates = cls.fetch_candidates()
         if not candidates:
-            Logger.warn("No active VPN candidates discovered. Proceeding in hardened Tor-Only mode.")
+            Logger.warn("No active VPN candidates discovered.")
             return None, None
 
-        top_pool = candidates[:max_candidates]
+        # When routing over Tor, prioritize or filter candidates that use TCP
+        if socks_tor:
+            tcp_candidates = []
+            for c in candidates:
+                try:
+                    decoded = base64.b64decode(c[4]).decode("utf-8", errors="ignore")
+                    if "proto tcp" in decoded.lower():
+                        tcp_candidates.append(c)
+                except Exception:
+                    pass
+            top_pool = (tcp_candidates if tcp_candidates else candidates)[:max_candidates]
+        else:
+            top_pool = candidates[:max_candidates]
+
         Logger.info(f"Initialized dynamic multi-route pool: [bold cyan]{len(top_pool)} optimal candidate routes[/bold cyan] selected.")
 
         for idx, (score, ping, country, ip_addr, ovpn_b64) in enumerate(top_pool, 1):
-            Logger.opsec(f"Probing Route #{idx}/{len(top_pool)}: [bold]{country}[/bold] ({ip_addr}) | Ping: {ping}ms (15s health verification)...")
+            mode_tag = " [via Tor SOCKS5]" if socks_tor else ""
+            Logger.opsec(f"Probing Route #{idx}/{len(top_pool)}: [bold]{country}[/bold] ({ip_addr}){mode_tag} | Ping: {ping}ms ({timeout}s verification)...")
             try:
                 decoded_ovpn = base64.b64decode(ovpn_b64).decode("utf-8", errors="ignore")
             except Exception:
                 continue
 
-            pid, server_ip = cls._test_and_launch_vpn(decoded_ovpn, country, ip_addr, timeout=15)
+            pid, server_ip = cls._test_and_launch_vpn(decoded_ovpn, country, ip_addr, timeout=timeout, socks_tor=socks_tor)
             if pid and server_ip:
                 Logger.success(f"[bold green]OPTIMAL VPN ROUTE LOCKED:[/bold green] #{idx} ({country} - {ip_addr}) verified active & passing encrypted traffic.")
                 return pid, server_ip
             else:
-                Logger.warn(f"Route #{idx} ({country} - {ip_addr}) failed to establish within 15s. Engaging automated failover...")
+                Logger.warn(f"Route #{idx} ({country} - {ip_addr}) failed to establish within {timeout}s. Engaging automated failover...")
                 cls.stop_vpn()
                 time.sleep(1.0)
 
-        Logger.warn(f"All {len(top_pool)} VPN candidate routes timed out. Operating in hardened Tor Transparent mode.")
+        Logger.warn(f"All {len(top_pool)} VPN candidate routes timed out.")
         return None, None
 
     @classmethod
@@ -1298,8 +1409,14 @@ class KillSwitchManager:
             Logger.warn(f"Could not backup existing iptables rules: {e}")
 
     @classmethod
-    def enable(cls, vpn_ip: Optional[str] = None, vpn_only: bool = False) -> bool:
-        mode_desc = "Pure Military-Grade VPN Shield" if vpn_only else "Tor-over-VPN Transparent Proxy"
+    def enable(cls, vpn_ip: Optional[str] = None, mode: str = "vpn-over-tor") -> bool:
+        mode_titles = {
+            "vpn-over-tor": "VPN-over-Tor Egress Shield (Exit is VPN)",
+            "tor-over-vpn": "Tor-over-VPN Transparent Proxy (Exit is Tor)",
+            "vpn-only": "Pure Military-Grade VPN Shield",
+            "tor-only": "Pure Tor Transparent Proxy",
+        }
+        mode_desc = mode_titles.get(mode, mode)
         Logger.opsec(f"Deploying low-level Linux Kernel Kill-Switch & Anti-Leak Firewall ({mode_desc})...")
         cls.backup_rules()
 
@@ -1308,26 +1425,18 @@ class KillSwitchManager:
         subprocess.run(["ip6tables", "-P", "FORWARD", "DROP"], capture_output=True, text=True)
         subprocess.run(["ip6tables", "-P", "OUTPUT", "DROP"], capture_output=True, text=True)
 
-        # Retrieve Tor system UID if Tor routing is utilized
-        tor_uid = None
-        if not vpn_only:
-            for username in ("debian-tor", "tor"):
-                res = subprocess.run(["id", "-u", username], capture_output=True, text=True)
-                if res.returncode == 0:
-                    tor_uid = res.stdout.strip()
-                    break
+        tor_uid = TorManager.get_tor_uid()
 
         # ----------------------------------------------------------------------
-        # 1. NAT TABLE REDIRECTION (Only used for Tor transparent interception)
+        # 1. NAT TABLE REDIRECTION (Only used for Tor-over-VPN & Tor-only)
         # ----------------------------------------------------------------------
         subprocess.run(["iptables", "-t", "nat", "-D", "OUTPUT", "-j", cls.NAT_CHAIN], capture_output=True, text=True)
         subprocess.run(["iptables", "-t", "nat", "-F", cls.NAT_CHAIN], capture_output=True, text=True)
         subprocess.run(["iptables", "-t", "nat", "-X", cls.NAT_CHAIN], capture_output=True, text=True)
 
-        if not vpn_only:
+        if mode in ("tor-over-vpn", "tor-only"):
             subprocess.run(["iptables", "-t", "nat", "-N", cls.NAT_CHAIN], capture_output=True, text=True)
 
-            # Tor daemon bypasses transparent redirection to prevent infinite loops
             if tor_uid:
                 subprocess.run(
                     ["iptables", "-t", "nat", "-A", cls.NAT_CHAIN, "-m", "owner", "--uid-owner", tor_uid, "-j", "RETURN"],
@@ -1414,50 +1523,46 @@ class KillSwitchManager:
             text=True,
         )
 
-        # 3. Allow Tor daemon outbound connections (When Tor is used)
-        if not vpn_only and tor_uid:
-            if vpn_ip:
-                # STRICT TOR-OVER-VPN ENFORCEMENT:
-                # Tor daemon is ONLY permitted to egress through tun+ (OpenVPN tunnel).
-                # Any attempt to egress through eth0/wlan0 directly is dropped by the killswitch!
+        # 3. Allow Loopback interface (-o lo) & 127.0.0.0/8 (vital for OpenVPN talking to Tor SOCKS 127.0.0.1:9050)
+        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "lo", "-j", "ACCEPT"], capture_output=True, text=True)
+        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-d", "127.0.0.0/8", "-j", "ACCEPT"], capture_output=True, text=True)
+
+        # 4. Allow OpenVPN tunnel adapter (tun+)
+        if mode in ("vpn-over-tor", "tor-over-vpn", "vpn-only"):
+            subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "tun+", "-j", "ACCEPT"], capture_output=True, text=True)
+
+        # 5. Allow Tor daemon outbound connections
+        if tor_uid:
+            if mode == "tor-over-vpn":
+                # STRICT TOR-OVER-VPN: Tor is strictly confined to tun+ (inside OpenVPN)
                 subprocess.run(
                     ["iptables", "-A", cls.CHAIN_NAME, "-o", "tun+", "-m", "owner", "--uid-owner", tor_uid, "-j", "ACCEPT"],
                     capture_output=True,
                     text=True,
                 )
-            else:
-                # In Tor-only mode, Tor daemon connects out through physical interface
+            elif mode in ("vpn-over-tor", "tor-only"):
+                # VPN-OVER-TOR: Tor connects to guards via physical interface (routed via table 100)
                 subprocess.run(
                     ["iptables", "-A", cls.CHAIN_NAME, "-m", "owner", "--uid-owner", tor_uid, "-j", "ACCEPT"],
                     capture_output=True,
                     text=True,
                 )
 
-        # 4. Allow Loopback interface (-o lo)
-        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "lo", "-j", "ACCEPT"], capture_output=True, text=True)
-
-        # 5. Allow Localhost destination subnet (redirected packets to 127.0.0.1)
-        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-d", "127.0.0.0/8", "-j", "ACCEPT"], capture_output=True, text=True)
-
-        # 6. Allow OpenVPN tunnel adapter (tun+)
-        subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-o", "tun+", "-j", "ACCEPT"], capture_output=True, text=True)
-
-        # 7. Allow connection to VPN Server endpoint directly if specified
-        if vpn_ip:
+        # 6. Direct connection to VPN endpoint (only needed for direct vpn-only mode)
+        if mode == "vpn-only" and vpn_ip:
             subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-d", vpn_ip, "-j", "ACCEPT"], capture_output=True, text=True)
 
-        # 8. Allow local LAN subnets
+        # 7. Allow local LAN subnets
         for subnet in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"):
             subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-d", subnet, "-j", "ACCEPT"], capture_output=True, text=True)
 
-        # 9. Drop all other outgoing packets in chain (hard kill-switch)
+        # 8. Drop all other outgoing packets in chain (hard kill-switch)
         subprocess.run(["iptables", "-A", cls.CHAIN_NAME, "-j", "DROP"], capture_output=True, text=True)
 
         # Insert custom filter chain at the top of OUTPUT
         subprocess.run(["iptables", "-I", "OUTPUT", "1", "-j", cls.CHAIN_NAME], capture_output=True, text=True)
 
-        mode_name = "Pure VPN Shield" if vpn_only else "Tor-over-VPN"
-        Logger.success(f"Kernel Kill-Switch & Anti-Leak Firewall [bold green]ARMED[/bold green] ({mode_name}). All system apps securely isolated.")
+        Logger.success(f"Kernel Kill-Switch & Anti-Leak Firewall [bold green]ARMED[/bold green] ({mode_desc}). All system apps securely isolated.")
         return True
 
     @classmethod
@@ -1610,7 +1715,7 @@ class Th3hubrisOrchestrator:
         self.state_mgr = state_mgr
         self.state = state_mgr.load()
 
-    def start(self, no_vpn: bool = False, custom_vpn: Optional[str] = None, vpn_only: bool = False) -> None:
+    def start(self, mode: str = "vpn-over-tor", custom_vpn: Optional[str] = None) -> None:
         Logger.banner()
         SystemValidator.enforce_root()
         SystemValidator.check_dependencies()
@@ -1629,20 +1734,123 @@ class Th3hubrisOrchestrator:
         # 1. MAC Address Cloaking
         self.state.original_macs = MacSpoofer.spoof_all()
 
-        # 2. DNS Leak Defense & NetworkManager Override
-        self.state.resolv_backup = DnsManager.backup_and_lock(vpn_only=vpn_only)
+        # 2. ProxyChains4 Orchestration (Local SOCKS5 127.0.0.1:9050)
+        self.state.proxychains_backup = ProxyChainsManager.configure()
 
         # 3. Enforce Firefox Enterprise Policy (Disable DNS-over-HTTPS Bypass)
         self.state.firefox_policy_backups = FirefoxPolicyManager.apply_policy()
 
         # ======================================================================
-        # BRANCH A: PURE MILITARY-GRADE VPN SHIELD (--vpn-only / --vpn)
+        # MODE 1: VPN OVER TOR (--start / --vpn-over-tor) [EXIT NODE IS VPN]
+        # Topology: App -> OpenVPN (tun0) -> Tor SOCKS5 (9050) -> OpenVPN Server -> Target
         # ======================================================================
-        if vpn_only:
-            Logger.opsec("Initializing Pure Military-Grade VPN Shield (Bypasses Tor Exit Node & Blocks)...")
-            pid, server_ip = VpnManager.start_vpn(custom_vpn, max_candidates=5)
+        if mode == "vpn-over-tor":
+            Logger.opsec("Initializing Dual-Armor VPN-over-Tor (Exit Node is VPN Server)...")
+            Logger.info("Topology: You -> Tor Network (127.0.0.1:9050) -> OpenVPN (tun0) -> Internet [Exit is VPN]")
+
+            # Set up policy routing to isolate Tor daemon to physical interface (table 100)
+            gw, iface = RoutingHelper.get_default_gateway_and_iface()
+            tor_uid = TorManager.get_tor_uid() or "debian-tor"
+            RoutingHelper.setup_tor_policy_routing(gw, iface, tor_uid)
+
+            # Start Tor daemon first (Tor connects to guards via physical iface table 100)
+            self.state.tor_was_running = TorManager.is_service_active()
+            if not TorManager.start_tor():
+                Logger.error("Tor initialization failed. Aborting pipeline to prevent unencrypted leaks.")
+                self.stop()
+                return
+
+            # Secure DNS subsystem with privacy resolvers routed inside the VPN tunnel
+            self.state.resolv_backup = DnsManager.backup_and_lock(vpn_exit=True)
+
+            # Automated Multi-Candidate OpenVPN Launch via Tor SOCKS5
+            pid, server_ip = VpnManager.start_vpn(custom_vpn, max_candidates=5, socks_tor=True)
             if not pid or not server_ip:
-                Logger.error("Failed to establish secure OpenVPN tunnel. Aborting pipeline to prevent leaks.")
+                Logger.error("Failed to establish OpenVPN tunnel over Tor. Aborting pipeline.")
+                self.stop()
+                return
+
+            self.state.openvpn_pid = pid
+            self.state.vpn_server_ip = server_ip
+            self.state.routing_mode = "vpn-over-tor"
+
+            # Arm Kernel KillSwitch for VPN-over-Tor
+            KillSwitchManager.enable(self.state.vpn_server_ip, mode="vpn-over-tor")
+            self.state.killswitch_active = True
+            self.state.is_active = True
+            self.state.activated_at = time.time()
+            self.state_mgr.save(self.state)
+
+            time.sleep(2.0)
+            Logger.info("Conducting egress audit through encrypted VPN-over-Tor pipeline (tun0)...")
+            shadow = NetworkAuditor.get_public_ip(via_tor_socks=False)
+            NetworkAuditor.print_audit_comparison(baseline, shadow)
+
+            Logger.success(f"[bold green]VPN-OVER-TOR VERIFIED ACTIVE:[/bold green] Egress IP: [bold cyan]{shadow.get('ip')}[/bold cyan] ({shadow.get('country')})")
+            Logger.info("[bold green]Exit node is VPN.[/bold green] Target websites see VPN IP directly. Zero Tor Exit Node flag. No Google CAPTCHAs.")
+            return
+
+        # ======================================================================
+        # MODE 2: TOR OVER VPN (--tor-over-vpn) [EXIT NODE IS TOR]
+        # Topology: App -> Tor TransPort (9040) -> Tor Network -> OpenVPN (tun0) -> Internet
+        # ======================================================================
+        elif mode == "tor-over-vpn":
+            Logger.opsec("Initializing Dual-Layer OPSEC (Tor over OpenVPN)...")
+            Logger.info("Topology: You -> OpenVPN (tun0) -> Tor Network -> Internet [Exit is Tor]")
+
+            # Secure DNS subsystem to Tor transparent resolver (127.0.0.1:9053)
+            self.state.resolv_backup = DnsManager.backup_and_lock(vpn_exit=False)
+
+            # Launch OpenVPN directly (First Layer)
+            pid, server_ip = VpnManager.start_vpn(custom_vpn, max_candidates=5, socks_tor=False)
+            if not pid or not server_ip:
+                Logger.error("Failed to establish secure OpenVPN tunnel. Aborting pipeline.")
+                self.stop()
+                return
+
+            self.state.openvpn_pid = pid
+            self.state.vpn_server_ip = server_ip
+            self.state.routing_mode = "tor-over-vpn"
+            Logger.success(f"OpenVPN tunnel established on [bold green]tun0[/bold green] ({server_ip}). Tor will route through VPN.")
+
+            # Tor Onion Routing Initialization (Second Layer)
+            self.state.tor_was_running = TorManager.is_service_active()
+            if not TorManager.start_tor():
+                Logger.error("Tor initialization failed. Aborting pipeline.")
+                self.stop()
+                return
+
+            # Kernel Kill-Switch Arming & Transparent NAT Routing
+            KillSwitchManager.enable(self.state.vpn_server_ip, mode="tor-over-vpn")
+            self.state.killswitch_active = True
+            self.state.is_active = True
+            self.state.activated_at = time.time()
+            self.state_mgr.save(self.state)
+
+            time.sleep(2.0)
+            Logger.info("Conducting egress audit through transparent proxy & Tor pipeline...")
+            shadow = NetworkAuditor.get_public_ip(via_tor_socks=False)
+            if not shadow.get("ip") or shadow.get("ip") == "Offline / Unreachable":
+                shadow = NetworkAuditor.get_public_ip(via_tor_socks=True)
+
+            NetworkAuditor.print_audit_comparison(baseline, shadow)
+            Logger.success(f"[bold green]TOR-OVER-VPN VERIFIED ACTIVE:[/bold green] Egress IP: [bold cyan]{shadow.get('ip')}[/bold cyan] ({shadow.get('country')})")
+            Logger.info("Exit node is Tor. Your ISP only sees encrypted OpenVPN traffic. Allows accessing .onion hidden services.")
+            return
+
+        # ======================================================================
+        # MODE 3: PURE VPN SHIELD (--vpn-only) [TOR COMPLETELY BYPASSED]
+        # Topology: App -> OpenVPN (tun0) -> Internet [Exit is VPN]
+        # ======================================================================
+        elif mode == "vpn-only":
+            Logger.opsec("Initializing Pure High-Speed OpenVPN Shield (Tor Bypassed)...")
+            Logger.info("Topology: You -> OpenVPN (tun0) -> Internet [Exit is VPN]")
+
+            self.state.resolv_backup = DnsManager.backup_and_lock(vpn_exit=True)
+
+            pid, server_ip = VpnManager.start_vpn(custom_vpn, max_candidates=5, socks_tor=False)
+            if not pid or not server_ip:
+                Logger.error("Failed to establish secure OpenVPN tunnel. Aborting pipeline.")
                 self.stop()
                 return
 
@@ -1650,8 +1858,7 @@ class Th3hubrisOrchestrator:
             self.state.vpn_server_ip = server_ip
             self.state.routing_mode = "vpn-only"
 
-            # Arm KillSwitch for VPN-only
-            KillSwitchManager.enable(self.state.vpn_server_ip, vpn_only=True)
+            KillSwitchManager.enable(self.state.vpn_server_ip, mode="vpn-only")
             self.state.killswitch_active = True
             self.state.is_active = True
             self.state.activated_at = time.time()
@@ -1663,87 +1870,40 @@ class Th3hubrisOrchestrator:
             NetworkAuditor.print_audit_comparison(baseline, shadow)
 
             Logger.success(f"[bold green]PURE VPN SHIELD VERIFIED:[/bold green] Egress IP: [bold cyan]{shadow.get('ip')}[/bold cyan] ({shadow.get('country')})")
-            Logger.info("Destination websites see the VPN Server IP directly. [bold green]Zero Tor Exit Node flag. No Google CAPTCHAs.[/bold green]")
+            Logger.info("Destination websites see the VPN Server IP directly. Zero Tor Exit Node flag. No Google CAPTCHAs.")
             return
 
         # ======================================================================
-        # BRANCH B: DUAL-LAYER OPSEC (Tor over VPN) / TOR-ONLY (--start)
+        # MODE 4: PURE TOR MODE (--tor-only / --no-vpn)
+        # Topology: App -> Tor TransPort (9040) -> Internet [Exit is Tor]
         # ======================================================================
-        # 4. ProxyChains4 Orchestration
-        self.state.proxychains_backup = ProxyChainsManager.configure()
+        elif mode == "tor-only":
+            Logger.opsec("Initializing Pure Tor Transparent Proxy...")
+            Logger.info("Topology: You -> Tor Network (TransPort 9040) -> Internet [Exit is Tor]")
 
-        # 5. Automated Multi-Candidate VPN Failover Engine (First Layer: Tor-over-VPN)
-        if not no_vpn:
-            pid, server_ip = VpnManager.start_vpn(custom_vpn, max_candidates=5)
-            self.state.openvpn_pid = pid
-            self.state.vpn_server_ip = server_ip
-            if pid and server_ip:
-                self.state.routing_mode = "tor-over-vpn"
-                Logger.success(f"OpenVPN tunnel established on [bold green]tun0[/bold green] ({server_ip}). Tor will route through VPN.")
-            else:
-                self.state.routing_mode = "tor-only"
-                Logger.warn("Proceeding in hardened Tor-Only mode (Direct Tor guards).")
-        else:
+            self.state.resolv_backup = DnsManager.backup_and_lock(vpn_exit=False)
+
+            self.state.tor_was_running = TorManager.is_service_active()
+            if not TorManager.start_tor():
+                Logger.error("Tor initialization failed. Aborting pipeline.")
+                self.stop()
+                return
+
             self.state.routing_mode = "tor-only"
+            KillSwitchManager.enable(None, mode="tor-only")
+            self.state.killswitch_active = True
+            self.state.is_active = True
+            self.state.activated_at = time.time()
+            self.state_mgr.save(self.state)
 
-        # 6. Tor Onion Routing Initialization & 15s Route Verification (Second Layer)
-        self.state.tor_was_running = TorManager.is_service_active()
-        if not TorManager.start_tor():
-            Logger.error("Tor initialization failed. Aborting pipeline to prevent unencrypted leaks.")
-            self.stop()
+            time.sleep(1.5)
+            shadow = NetworkAuditor.get_public_ip(via_tor_socks=False)
+            if not shadow.get("ip") or shadow.get("ip") == "Offline / Unreachable":
+                shadow = NetworkAuditor.get_public_ip(via_tor_socks=True)
+
+            NetworkAuditor.print_audit_comparison(baseline, shadow)
+            Logger.success(f"[bold green]TOR TRANSPARENT PROXY VERIFIED:[/bold green] Egress IP: [bold cyan]{shadow.get('ip')}[/bold cyan] ({shadow.get('country')})")
             return
-
-        # 7. Kernel Kill-Switch Arming & Transparent NAT Routing
-        KillSwitchManager.enable(self.state.vpn_server_ip, vpn_only=False)
-        self.state.killswitch_active = True
-
-        self.state.is_active = True
-        self.state.activated_at = time.time()
-        self.state_mgr.save(self.state)
-
-        # 8. Post-Activation DNS Resolution End-to-End Verification
-        time.sleep(1.5)
-        dns_ok = DnsManager.send_raw_dns_query("check.torproject.org", server="127.0.0.1", port=53, timeout=3.0)
-        if dns_ok:
-            Logger.success(f"End-to-End DNS Resolution verified ([bold green]127.0.0.1:53 -> Tor {TOR_DNS_PORT}[/bold green]). Zero Leaks.")
-        else:
-            Logger.warn("DNS check through system resolver took longer than expected. Testing via SOCKS proxy...")
-
-        # 9. Verify Tor-over-VPN Routing Integrity & Active Tunnel Encapsulation
-        if self.state.vpn_server_ip:
-            tun_stats = Path("/sys/class/net/tun0/statistics/tx_packets")
-            if tun_stats.exists():
-                try:
-                    tx_pkts = int(tun_stats.read_text().strip())
-                    Logger.success(f"[bold green]TOR-OVER-VPN ACTIVE:[/bold green] Tor guards actively encapsulated over OpenVPN ({tx_pkts} packets pushed through tun0).")
-                except Exception:
-                    pass
-
-        # 10. Post-Activation Egress IP Verification Matrix
-        Logger.info("Conducting egress audit through transparent proxy & Tor pipeline...")
-        direct_shadow = NetworkAuditor.get_public_ip(via_tor_socks=False)
-        if direct_shadow.get("ip") and direct_shadow.get("ip") != "Offline / Unreachable":
-            shadow = direct_shadow
-        else:
-            shadow = NetworkAuditor.get_public_ip(via_tor_socks=True)
-
-        NetworkAuditor.print_audit_comparison(baseline, shadow)
-
-        if shadow.get("ip") != baseline.get("ip") and shadow.get("ip") != "Offline / Unreachable":
-            Logger.success("[bold green]ANONYMITY CHAIN VERIFIED:[/bold green] Identity masked. Zero leaks detected.")
-        else:
-            Logger.warn("Public IP verification timed out or unchanged. Inspecting local routing...")
-
-        if self.state.vpn_server_ip:
-            Logger.info("[bold cyan]OPSEC Note:[/bold cyan] In Tor-over-VPN mode, your ISP only sees OpenVPN, while target websites see the Tor Exit Node.")
-            Logger.info("To make target websites see the VPN IP directly (bypassing Tor Exit Node blocks & Google CAPTCHAs), use:")
-            print(f"  {TermColors.BOLD}{TermColors.GREEN}sudo th3hubris --vpn-only{TermColors.RESET}\n")
-
-        # Check if Firefox is running and advise restart
-        res = subprocess.run(["pgrep", "-f", "firefox"], capture_output=True, text=True)
-        if res.returncode == 0:
-            Logger.warn("Firefox is currently running. For transparent DNS rules to take immediate effect, restart Firefox:")
-            print(f"  {TermColors.BOLD}{TermColors.CYAN}killall firefox-esr firefox; sudo th3hubris --browser{TermColors.RESET}\n")
 
     def repair_network(self, silent: bool = False) -> None:
         """Unconditionally repairs DNS, restores NetworkManager, and resets all locks."""
@@ -1752,39 +1912,42 @@ class Th3hubrisOrchestrator:
             SystemValidator.enforce_root()
             Logger.opsec("Executing Deep Network Forensic Recovery & Zero-Lock Restoration...")
 
-        # 1. Disarm Kernel Kill-Switch & Flush NAT / Filter tables
+        # 1. Teardown Tor Policy Routing (Table 100, fwmark, and mangle rules)
+        RoutingHelper.teardown_tor_policy_routing()
+
+        # 2. Disarm Kernel Kill-Switch & Flush NAT / Filter tables
         KillSwitchManager.disable()
         self.state.killswitch_active = False
 
-        # 2. Terminate any OpenVPN daemons
+        # 3. Terminate any OpenVPN daemons
         VpnManager.stop_vpn(self.state.openvpn_pid)
         self.state.openvpn_pid = None
         self.state.vpn_server_ip = None
 
-        # 3. Scrub Firefox Enterprise Policies across all distributions
+        # 4. Scrub Firefox Enterprise Policies across all distributions
         FirefoxPolicyManager.restore_policy(self.state.firefox_policy_backups)
         self.state.firefox_policy_backups = []
 
-        # 4. Deep Forensic DNS & NetworkManager Restoration
+        # 5. Deep Forensic DNS & NetworkManager Restoration
         DnsManager.restore(self.state.resolv_backup)
         self.state.resolv_backup = None
 
-        # 5. Restore ProxyChains4 configuration
+        # 6. Restore ProxyChains4 configuration
         ProxyChainsManager.restore(self.state.proxychains_backup)
         self.state.proxychains_backup = None
 
-        # 6. Restore Physical Network Hardware MAC addresses
+        # 7. Restore Physical Network Hardware MAC addresses
         MacSpoofer.restore_all(self.state.original_macs)
         self.state.original_macs = {}
 
-        # 7. Stop Tor daemon if started by Th3hubris
+        # 8. Stop Tor daemon if started by Th3hubris
         TorManager.stop_tor_if_started(self.state.tor_was_running)
 
-        # 8. Clear Persistent State
+        # 9. Clear Persistent State
         self.state.is_active = False
         self.state_mgr.clear()
 
-        # 9. Verify Native Connectivity & Public IP
+        # 10. Verify Native Connectivity & Public IP
         if not silent:
             Logger.info("Auditing restored native Internet connectivity & DNS resolution...")
             time.sleep(1.0)
@@ -1842,17 +2005,23 @@ class Th3hubrisOrchestrator:
         SystemValidator.enforce_root()
 
         tor_status = TorManager.is_service_active()
-        current_ip = NetworkAuditor.get_public_ip(via_tor_socks=(self.state.is_active and self.state.routing_mode != "vpn-only"))
+        current_ip = NetworkAuditor.get_public_ip(via_tor_socks=(self.state.is_active and self.state.routing_mode in ("tor-over-vpn", "tor-only")))
 
-        if self.state.routing_mode == "vpn-only":
+        if self.state.routing_mode == "vpn-over-tor":
+            routing_mode = f"[bold green]VPN over Tor (tun0 -> {self.state.vpn_server_ip}) [Exit is VPN][/bold green]"
+            routing_mode_plain = f"VPN over Tor (tun0 -> {self.state.vpn_server_ip}) [Exit is VPN]"
+        elif self.state.routing_mode == "vpn-only":
             routing_mode = f"[bold green]Pure VPN Shield (tun0 -> {self.state.vpn_server_ip}) [Bypasses Tor Exit Node][/bold green]"
             routing_mode_plain = f"Pure VPN Shield (tun0 -> {self.state.vpn_server_ip}) [Bypasses Tor Exit Node]"
-        elif self.state.vpn_server_ip:
-            routing_mode = f"[bold green]Tor over VPN (tun0 -> {self.state.vpn_server_ip} -> Tor)[/bold green]"
-            routing_mode_plain = f"Tor over VPN (tun0 -> {self.state.vpn_server_ip} -> Tor)"
+        elif self.state.routing_mode == "tor-over-vpn":
+            routing_mode = f"[bold green]Tor over VPN (tun0 -> {self.state.vpn_server_ip} -> Tor) [Exit is Tor][/bold green]"
+            routing_mode_plain = f"Tor over VPN (tun0 -> {self.state.vpn_server_ip} -> Tor) [Exit is Tor]"
+        elif self.state.routing_mode == "tor-only":
+            routing_mode = "[yellow]Direct Tor Guards (eth0 -> Tor) [Exit is Tor][/yellow]"
+            routing_mode_plain = "Direct Tor Guards (eth0 -> Tor) [Exit is Tor]"
         else:
-            routing_mode = "[yellow]Direct Tor Guards (eth0 -> Tor)[/yellow]"
-            routing_mode_plain = "Direct Tor Guards (eth0 -> Tor)"
+            routing_mode = "[dim]Direct / Inactive (Uncloaked)[/dim]"
+            routing_mode_plain = "Direct / Inactive (Uncloaked)"
 
         if HAS_RICH and console:
             table = Table(title="[bold cyan]Th3hubris Operational Health & Posture[/bold cyan]", box=ROUNDED)
@@ -1895,18 +2064,20 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    action_group = parser.add_argument_group("Operational Commands")
-    action_group.add_argument("--start", action="store_true", help="Initiate full dual-layer anonymity chain (Tor over OpenVPN)")
-    action_group.add_argument("--vpn-only", "--vpn", dest="vpn_only", action="store_true", help="Arm pure high-speed OpenVPN tunnel with KillSwitch (websites see VPN IP directly, bypassing Tor Exit Node & Google CAPTCHAs)")
+    action_group = parser.add_argument_group("Operational Modes & Commands")
+    action_group.add_argument("--start", action="store_true", help="Initiate full dual-layer anonymity chain (VPN over Tor - Exit node is VPN)")
+    action_group.add_argument("--vpn-over-tor", dest="vpn_over_tor", action="store_true", help="Route OpenVPN through Tor network (Exit node is VPN, zero Tor CAPTCHAs/blocks)")
+    action_group.add_argument("--tor-over-vpn", dest="tor_over_vpn", action="store_true", help="Route Tor through OpenVPN tunnel (Exit node is Tor, access .onion darknet services)")
+    action_group.add_argument("--vpn-only", "--vpn", dest="vpn_only", action="store_true", help="Arm pure high-speed OpenVPN tunnel with KillSwitch (websites see VPN IP directly)")
+    action_group.add_argument("--tor-only", "--no-vpn", dest="tor_only", action="store_true", help="Arm transparent Tor proxy directly without VPN")
     action_group.add_argument("--stop", action="store_true", help="Flush firewall rules and restore original network configurations")
     action_group.add_argument("--repair-network", "--fix-network", dest="repair_network", action="store_true", help="Unconditionally restore native DNS, NetworkManager, and repair internet connectivity")
     action_group.add_argument("--boot-check", action="store_true", help=argparse.SUPPRESS)
-    action_group.add_argument("--ghost-id", action="store_true", help="Instantly rotate Tor exit node / acquire new IP")
+    action_group.add_argument("--ghost-id", action="store_true", help="Instantly rotate Tor circuit identity / acquire new IP")
     action_group.add_argument("--status", action="store_true", help="Audit current OPSEC posture and IP visibility")
     action_group.add_argument("--shell", action="store_true", help="Spawn an anonymized sub-shell wrapped with proxychains4")
-    action_group.add_argument("--browser", "--firefox", dest="browser", action="store_true", help="Launch Firefox configured securely through Tor transparent proxy")
+    action_group.add_argument("--browser", "--firefox", dest="browser", action="store_true", help="Launch Firefox configured securely")
 
-    parser.add_argument("--no-vpn", action="store_true", help="Skip OpenVPN tunnel and run pure Tor + ProxyChains mode")
     parser.add_argument("--vpn-config", type=str, help="Path to custom .ovpn configuration file")
     parser.add_argument("-v", "--version", action="version", version=f"Th3hubris v{VERSION}")
 
@@ -1928,8 +2099,14 @@ def main() -> None:
         ShellManager.spawn_cloaked_shell()
     elif args.browser:
         FirefoxPolicyManager.launch_browser()
-    elif args.start or args.vpn_only:
-        orchestrator.start(no_vpn=args.no_vpn, custom_vpn=args.vpn_config, vpn_only=args.vpn_only)
+    elif args.tor_over_vpn:
+        orchestrator.start(mode="tor-over-vpn", custom_vpn=args.vpn_config)
+    elif args.vpn_only:
+        orchestrator.start(mode="vpn-only", custom_vpn=args.vpn_config)
+    elif args.tor_only:
+        orchestrator.start(mode="tor-only", custom_vpn=args.vpn_config)
+    elif args.start or args.vpn_over_tor:
+        orchestrator.start(mode="vpn-over-tor", custom_vpn=args.vpn_config)
     else:
         orchestrator.status()
 

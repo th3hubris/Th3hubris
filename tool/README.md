@@ -21,62 +21,39 @@
 
 ---
 
-## 🏛️ Tactical Architecture
+## 🏛️ Tactical Architecture & Operating Modes
 
-Th3hubris combines multiple defense layers into a unified, non-conflicting routing pipeline inspired by gold-standard Linux transparent proxy architectures (`kalitorify`, `kali-anonsurf`). It prevents data exposure by chaining **Hardware MAC Spoofing**, **Tor Transparent DNS (DNSPort 5353)**, **Tor Transparent TCP Interception (TransPort 9040)**, **Mozilla Enterprise Policy (DNS-over-HTTPS Blocker)**, **Dynamic OpenVPN Tunneling**, **ProxyChains4**, and a **Low-Level Linux Kernel Kill-Switch**.
+Th3hubris combines multiple defense layers into a unified, non-conflicting routing pipeline inspired by gold-standard Linux transparent proxy architectures (kalitorify, kali-anonsurf). It prevents data exposure by chaining **Hardware MAC Spoofing**, **Tor Onion Circuits**, **Linux Policy Routing (Loop Prevention)**, **OpenVPN Tunneling**, **ProxyChains4**, and a **Low-Level Linux Kernel Kill-Switch**.
 
-```text
-+------------------------------------------------------------------------------------------------+
-|                                    TARGET MACHINE (KALI LINUX)                                  |
-|                                                                                                |
-|   [ System Applications & Web Browsers ] (Firefox, Chrome, curl, nmap, hydra, python)          |
-|                                 |                                                              |
-|                                 +------------------------------+                               |
-|                                 |                              |                               |
-|                          (DNS: UDP/TCP 53)              (TCP: Any Port)                        |
-|                                 |                              |                               |
-|                                 v                              v                               |
-|                 [ IPTABLES NAT REDIRECTION ]    [ IPTABLES NAT REDIRECTION ]                   |
-|                 Redirected to 127.0.0.1:5353    Redirected to 127.0.0.1:9040                   |
-|                                 |                              |                               |
-|                                 v                              v                               |
-|                     [ Tor Daemon DNSPort ]          [ Tor Daemon TransPort ]                   |
-|                     (Remote Onion Resolver)         (Transparent TCP Proxy)                    |
-|                                 |                              |                               |
-|                                 +--------------+---------------+                               |
-|                                                |                                               |
-|                                                v                                               |
-|                             [ Tor Multipath Onion Circuit ]                                    |
-|                                                |                                               |
-|                                                v                                               |
-|                             [ OpenVPN Tunnel (tun0) - Optional ]                               |
-|                                                |                                               |
-|   ===================== KERNEL FIREWALL KILL-SWITCH (iptables) =============================   |
-|   * Drops 100% of non-Tor / non-VPN outbound packets (Hard Kill-Switch)                       |
-|   * Drops 100% of IPv6 traffic (Input / Output / Forward)                                      |
-|   * Locks /etc/resolv.conf and disables NetworkManager DNS overwrites                          |
-|   * Enforces Mozilla Enterprise Policy (policies.json) disabling Firefox DNS-over-HTTPS (DoH)  |
-|   * Randomizes Physical / Wireless MAC addresses (02:xx:xx:xx:xx:xx)                           |
-+------------------------------------------------------------------------------------------------+
-                                                 |
-                                                 v
-                                       [ Encrypted Public WAN ]
-                                                 |
-                              +------------------+------------------+
-                              |                                     |
-                              v                                     v
-                      [ OpenVPN Relay Node ]              [ Tor Guard Node ]
-                      (ISP only sees VPN/Tor)                       |
-                                                                    v
-                                                          [ Tor Middle Relay ]
-                                                                    |
-                                                                    v
-                                                          [ Tor Exit Node ]
-                                                                    |
-                                                                    v
-                                                        [ Target Remote Server ]
-                                                   (Server only sees Tor Exit IP)
-```
+### 1. Dual Armor: VPN over Tor (--start / --vpn-over-tor) — [DEFAULT RECOMMENDED]
+`	ext
+[ System Apps / Tools ] -> [ OpenVPN (tun0) ] -> [ Tor SOCKS5 (127.0.0.1:9050) ] -> [ Tor Network ] -> [ OpenVPN Server ] -> [ Internet / Web ]
+`
+- **Exit Node:** OpenVPN Server IP (e.g. Japan, Romania, France).
+- **Target Websites:** See the **VPN Server IP directly** (**Zero Tor Exit Node flag**, Zero Tor IP blocks, No Google CAPTCHAs).
+- **Your ISP (e.g. Maroc Telecom):** Sees only encrypted TLS traffic to Tor Entry Guards.
+- **VPN Server:** Sees incoming traffic from Tor Exit nodes — the VPN provider has **NO knowledge of your real IP or ISP**.
+- **Tor Daemon Isolation:** Guarded via Linux Policy Routing (	able 100 + wmark 0x10) to physical interface eth0, preventing routing loops.
+
+### 2. Dual Layer: Tor over VPN (--tor-over-vpn)
+`	ext
+[ System Apps / Tools ] -> [ Tor TransPort (9040) ] -> [ Tor Network ] -> [ OpenVPN (tun0) ] -> [ Internet / Web ]
+`
+- **Exit Node:** Tor Exit Node.
+- **Target Websites:** See a Tor Exit Node (allows accessing .onion hidden services).
+- **Your ISP:** Sees only OpenVPN traffic.
+
+### 3. Pure Military-Grade VPN Shield (--vpn-only)
+`	ext
+[ System Apps / Tools ] -> [ OpenVPN (tun0) ] -> [ OpenVPN Server ] -> [ Internet / Web ]
+`
+- Ultra high-speed direct OpenVPN tunnel with Kernel KillSwitch (Tor bypassed completely for maximum bandwidth).
+
+### 4. Pure Tor Transparent Mode (--tor-only)
+`	ext
+[ System Apps / Tools ] -> [ Tor TransPort (9040) ] -> [ Tor Network ] -> [ Internet / Web ]
+`
+- Direct system-wide transparent Tor proxying without OpenVPN.
 
 ---
 

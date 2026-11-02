@@ -43,7 +43,7 @@ cat << 'EOF'
 
 EOF
 echo -e "${WHITE}  »»» We Build Shadow Soldiers - Ultimate OPSEC Suite «««${NC}"
-echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.5.0)${NC}\n"
+echo -e "${CYAN}  Kali Linux 2026 Automated Environment Deployment (v3.6.0)${NC}\n"
 
 # 1. Enforce Root Privileges
 if [[ "$EUID" -ne 0 ]]; then
@@ -184,10 +184,13 @@ echo -e "${GREEN}[✔] Systemd Boot Guard active: Guaranteed zero network lockou
 echo -e "${GREEN}[✔] Kali Linux 2026 networking stack verified.${NC}"
 echo -e "${WHITE}================================================================${NC}"
 echo -e "\n${CYAN}Quick Start Commands:${NC}"
-echo -e "  ${YELLOW}sudo th3hubris --start${NC}          -> Full dual armor (Tor over OpenVPN)"
-echo -e "  ${YELLOW}sudo th3hubris --vpn-only${NC}       -> Pure VPN shield (bypasses Tor exit node & CAPTCHAs)"
-echo -e "  ${YELLOW}sudo th3hubris --browser${NC}        -> Launch secure Firefox via Tor"
+echo -e "  ${YELLOW}sudo th3hubris --start${NC}          -> Dual Armor: VPN over Tor (Exit is VPN, Zero CAPTCHAs)"
+echo -e "  ${YELLOW}sudo th3hubris --vpn-over-tor${NC}   -> Explicit VPN over Tor (You -> Tor -> VPN -> Web)"
+echo -e "  ${YELLOW}sudo th3hubris --tor-over-vpn${NC}   -> Tor over VPN (You -> VPN -> Tor -> Web [Exit is Tor])"
+echo -e "  ${YELLOW}sudo th3hubris --vpn-only${NC}       -> Pure VPN shield (Ultra-speed, Tor bypassed)"
+echo -e "  ${YELLOW}sudo th3hubris --tor-only${NC}       -> Pure Tor transparent proxy"
 echo -e "  ${YELLOW}sudo th3hubris --status${NC}         -> Check OPSEC & IP posture"
-echo -e "  ${YELLOW}sudo th3hubris --ghost-id${NC}       -> Rotate Tor exit circuit / IP"
+echo -e "  ${YELLOW}sudo th3hubris --ghost-id${NC}       -> Rotate Tor circuit identity / acquire new IP"
+echo -e "  ${YELLOW}sudo th3hubris --browser${NC}        -> Launch hardened Firefox browser"
 echo -e "  ${YELLOW}sudo th3hubris --repair-network${NC}  -> Deep unconditional network self-heal"
 echo -e "  ${YELLOW}sudo th3hubris --stop${NC}           -> Decommission suite & restore network\n"
