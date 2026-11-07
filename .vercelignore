@@ -1,8 +1,0 @@
-tool/
-__pycache__/
-*.py
-*.pyc
-*.pyo
-*.sh
-.git
-.github
